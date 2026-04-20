@@ -1,0 +1,517 @@
+/* --- VARIABLES GLOBALES DE MARCA (Al inicio de style.css) --- */
+:root {
+  --primario: #3d39af;
+  --texto: #2d3436;
+  --fondo: #ffffff;
+  --gris: #f8f9fa;
+  --fuente: 'Inter', sans-serif;
+}
+
+body {
+  font-family: var(--fuente);
+  color: var(--texto);
+  margin: 0;
+}
+
+/* CSS PARA COMPONENTE INTERACTION */
+/* El overlay base para Carga, Alertas y Errores */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 99999 !important;
+  display: grid;
+  place-items: center;
+  backdrop-filter: blur(4px);
+}
+
+/* El Toast también debe estar por encima de todo */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 25px;
+  color: white;
+  border-radius: 8px;
+  z-index: 9001; /* Un poco más que el overlay */
+  font-weight: bold;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* --- CSS PARA FORMULARIO MODAL --- */
+.boton-cerrar {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  transition: all 0.2s ease;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.boton-cerrar i {
+  font-size: 24px;
+  color: #ccc;
+}
+
+.boton-cerrar:hover i {
+  color: #e11d48;
+  transform: scale(1.1);
+}
+
+.modal-fondo {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 5000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-caja {
+  position: relative;
+  background: white;
+  width: 100%;
+  max-width: 400px;
+  padding: 32px 24px;
+  border-radius: 30px;
+  position: relative;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.2);
+  text-align: center;
+}
+
+.modal-titulo {
+  margin-bottom: 25px;
+  color: #3d39af;
+  font-weight: 800;
+  font-size: 24px;
+}
+
+.form-auth {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 15px;
+  width: 100%;
+}
+
+.campo label {
+  font-size: 15px;
+  font-weight: 600;
+  padding-left: 2px;
+}
+
+.input-auth {
+  padding: 14px;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  outline: none;
+  font-size: 15px;
+  background: #f9f9f9;
+  transition: 0.3s;
+  width: 100%;
+  display: block;
+  box-sizing: border-box;
+}
+
+.input-auth:focus {
+  border-color: #3d39af;
+  background: white;
+}
+
+.input-auth.ng-invalid.ng-touched {
+  border-color: #e74c3c;
+}
+
+.error-text {
+  color: #e74c3c;
+  font-size: 11px;
+  text-align: left;
+  margin-top: -8px;
+  margin-left: 5px;
+  font-weight: 600;
+}
+
+.btn-enviar {
+  background: #3d39af;
+  color: white;
+  border: none;
+  padding: 15px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: opacity 0.3s;
+}
+
+.btn-enviar:hover {
+  opacity: 0.9;
+}
+
+.btn-enviar:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.link-cambio {
+  font-size: 13px;
+  margin-top: 15px;
+  cursor: pointer;
+  color: #3d39af;
+  font-weight: 600;
+}
+
+/* --- ESTRUCTURA DE SECCIÓN Y LAYOUT --- */
+.seccion-layout {
+  padding: 10px 30px 40px;
+  background-color: #f8f9fa;
+  min-height: 80vh;
+}
+.contenedor-estandar {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.cabecera-pagina {
+  text-align: center;
+  margin-bottom: 50px;
+}
+.cabecera-pagina h2 {
+  font-size: clamp(26px, 5vw, 36px);
+  font-weight: 800;
+  color: var(--texto);
+  margin-bottom: 10px;
+}
+.cabecera-pagina p {
+  color: #7f8c8d;
+  font-size: 16px;
+  font-weight: 300;
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+/* --- REJILLA (GRID) --- */
+.grid-dinamico {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: 25px;
+}
+
+/* --- LA TARJETA STAYINN (ESTÁNDAR) --- */
+.tarjeta-resort {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+.tarjeta-resort:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 30px rgba(61, 57, 175, 0.1);
+  border-color: var(--primario);
+}
+
+.tarjeta-cuerpo {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+.tarjeta-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.tarjeta-titulo {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--texto);
+  margin: 0;
+}
+
+.tarjeta-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 20px;
+  border-top: 1px solid #f1f1f1;
+  margin-top: auto;
+}
+
+/* --- BADGES (Etiquetas de Estado) --- */
+.badge-resort {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 6px 14px;
+  border-radius: 50px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 1px solid transparent;
+}
+.badge-info {
+  background: #f0f3ff;
+  color: var(--primario);
+}
+.badge-pendiente {
+  background: #fff9db;
+  color: #f59f00;
+  border-color: #ffe066;
+}
+.badge-confirmada {
+  background: #e7f5ff;
+  color: #228be6;
+  border-color: #a5d8ff;
+}
+.badge-activa {
+  background: #ebfbee;
+  color: #40c057;
+  border-color: #b2f2bb;
+}
+.badge-finalizada {
+  background: #f8f9fa;
+  color: #868e96;
+  border-color: #e9ecef;
+}
+.badge-cancelada {
+  background: #fff5f5;
+  color: #fa5252;
+  border-color: #ffc9c9;
+}
+
+/* --- BOTONES ESTÁNDAR --- */
+.btn-resort {
+  border: none;
+  padding: 12px 22px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.btn-resort-primario {
+  background: var(--primario);
+  color: white;
+}
+.btn-resort-outline {
+  background: white;
+  border: 1px solid var(--primario);
+  color: var(--primario);
+}
+.btn-resort-danger {
+  background: white;
+  border: 1px solid #fa5252;
+  color: #fa5252;
+}
+.btn-resort:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* --- PAGINACIÓN --- */
+.paginacion-estandar {
+  margin-top: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+}
+
+.btn-pag {
+  background: white;
+  border: 1px solid var(--primario);
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btn-pag:hover {
+  background: var(--primario);
+  color: white;
+}
+
+.btn-pag:disabled {
+  opacity: 0.4;
+  border-color: #eee;
+}
+
+/* --- BARRA DE BÚSQUEDA LISTADOS --- */
+.barra-acciones {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  width: 100%;
+}
+
+.contenedor-busqueda {
+  position: relative;
+  flex: 1; /* El buscador crece para ocupar el espacio */
+  max-width: 700px;
+}
+
+.icono-busqueda {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.input-busqueda {
+  width: 100%;
+  padding: 12px 15px 12px 45px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.input-busqueda:focus {
+  border-color: var(--primario);
+  background-color: #ffffff;
+  box-shadow: 0 0 0 4px rgba(61, 57, 175, 0.05);
+}
+
+/* --- TABLA / LISTADOS --- */
+.tabla-contenedor {
+  background: white;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+  overflow-x: auto; /* Scroll horizontal solo en la tabla si es necesario */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  margin-bottom: 20px;
+}
+
+.tabla-resort {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  min-width: 700px; /* Asegura que la tabla no se colapse */
+}
+
+.tabla-resort th {
+  background-color: #f8fafc;
+  padding: 18px 25px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.tabla-resort td {
+  padding: 20px 25px;
+  font-size: 14px;
+  color: #334155;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.txt-negrita {
+  font-weight: 700;
+  color: #1e293b;
+}
+.txt-centro {
+  text-align: center;
+}
+
+.acciones-celda {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.btn-accion {
+  width: 35px;
+  height: 35px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: 0.3s;
+}
+
+.btn-editar {
+  background-color: #f1f5f9;
+  color: #64748b;
+}
+.btn-editar:hover {
+  background-color: var(--primario);
+  color: white;
+}
+
+.btn-eliminar {
+  background-color: #fff1f2;
+  color: #e11d48;
+}
+.btn-eliminar:hover {
+  background-color: #e11d48;
+  color: white;
+}
+
+.tabla-contenedor {
+  background: white;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+  overflow-x: auto;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+}
+
+.columna-descripcion {
+  max-width: 300px; /* Limitamos el ancho para que no se coma la tabla */
+}
+
+.texto-truncado {
+  display: block;
+  white-space: nowrap; /* No permite saltos de línea */
+  overflow: hidden; /* Esconde lo que sobra */
+  text-overflow: ellipsis; /* Agrega los "..." al final */
+  color: #64748b;
+  font-size: 13px;
+}
+
+/* Opcional: Que se vea completa al pasar el mouse */
+.texto-truncado:hover {
+  white-space: normal; /* Muestra todo el texto */
+  cursor: help;
+  color: var(--texto);
+}
+
+.acciones-celda {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.tabla-vacia {
+  padding: 60px !important;
+  text-align: center;
+  color: #94a3b8;
+  font-style: italic;
+}
