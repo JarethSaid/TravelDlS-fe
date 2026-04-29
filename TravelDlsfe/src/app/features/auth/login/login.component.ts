@@ -125,11 +125,15 @@ export class LoginComponent {
     this.ui.showLoading();
     const { email, password } = this.form.getRawValue();
     this.auth.login({ email: email.trim(), password }).subscribe({
-      next: () => {
+      next: (user) => {
         this.ui.hideLoading();
         this.submitting = false;
         this.ui.showToast('Sesión iniciada', 'success');
-        void this.router.navigate(['/dashboard']);
+        if (user.role === 'platform_admin') {
+          void this.router.navigate(['/admin/dashboard']);
+        } else {
+          void this.router.navigate(['/dashboard']);
+        }
       },
       error: (err) => {
         this.ui.hideLoading();

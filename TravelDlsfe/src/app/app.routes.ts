@@ -20,5 +20,12 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./features/home/dashboard.component').then((m) => m.DashboardComponent),
   },
+  {
+    path: 'admin',
+    canActivate: [authGuard],
+    loadChildren: () =>
+      import('./features/platformAdmin/routes/admin.routes').then((m) => m.adminRoutes),
+  },
   { path: '**', redirectTo: 'login' },
 ];
+
