@@ -1,13 +1,15 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { guestGuard } from './core/guards/guest.guard';
+import { roleGuard } from './core/guards/role.guard';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'login' },
   {
     path: 'login',
     canActivate: [guestGuard],
-    loadComponent: () => import('./features/auth/login/login.component').then((m) => m.LoginComponent),
+    loadComponent: () =>
+      import('./features/auth/login/login.component').then((m) => m.LoginComponent),
   },
   {
     path: 'register',
@@ -18,7 +20,8 @@ export const routes: Routes = [
   {
     path: 'dashboard',
     canActivate: [authGuard],
-    loadComponent: () => import('./features/home/dashboard.component').then((m) => m.DashboardComponent),
+    loadComponent: () =>
+      import('./features/home/dashboard.component').then((m) => m.DashboardComponent),
   },
   {
     path: 'admin',
@@ -26,6 +29,11 @@ export const routes: Routes = [
     loadChildren: () =>
       import('./features/platformAdmin/routes/admin.routes').then((m) => m.adminRoutes),
   },
+  {
+    path: 'driver',
+    canActivate: [authGuard, roleGuard('driver')],
+    loadChildren: () =>
+      import('./features/driver/routes/driver.routes').then((m) => m.driverRoutes),
+  },
   { path: '**', redirectTo: 'login' },
 ];
-
