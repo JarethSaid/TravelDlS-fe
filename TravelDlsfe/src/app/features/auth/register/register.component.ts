@@ -172,11 +172,19 @@ export class RegisterComponent {
     this.ui.showLoading();
     const { name, email, password } = this.form.getRawValue();
     this.auth.signup({ name: name.trim(), email: email.trim(), password }).subscribe({
-      next: () => {
+      next: (user) => {
         this.ui.hideLoading();
         this.submitting = false;
         this.ui.showToast('Cuenta creada correctamente', 'success');
-        void this.router.navigate(['/dashboard']);
+        if (user.role === 'platform_admin') {
+          void this.router.navigate(['/admin/dashboard']);
+        } else if (user.role === 'driver') {
+          void this.router.navigate(['/driver/dashboard']);
+        } else if (user.role === 'company') {
+          void this.router.navigate(['/company/dashboard']);
+        } else {
+          void this.router.navigate(['/dashboard']);
+        }
       },
       error: (err) => {
         this.ui.hideLoading();

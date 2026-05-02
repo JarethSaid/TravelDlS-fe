@@ -35,5 +35,11 @@ export const routes: Routes = [
     loadChildren: () =>
       import('./features/driver/routes/driver.routes').then((m) => m.driverRoutes),
   },
+  {
+    path: 'company',
+    canActivate: [authGuard, roleGuard('company')],
+    loadChildren: () =>
+      import('./features/company/routes/company.routes').then((m) => m.companyRoutes),
+  },
   { path: '**', redirectTo: 'login' },
 ];

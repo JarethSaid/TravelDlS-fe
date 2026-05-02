@@ -133,6 +133,8 @@ export class LoginComponent {
           void this.router.navigate(['/admin/dashboard']);
         } else if (user.role === 'driver') {
           void this.router.navigate(['/driver/dashboard']);
+        } else if (user.role === 'company') {
+          void this.router.navigate(['/company/dashboard']);
         } else {
           void this.router.navigate(['/dashboard']);
         }
