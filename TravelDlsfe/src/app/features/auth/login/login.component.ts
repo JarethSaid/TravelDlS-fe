@@ -131,6 +131,8 @@ export class LoginComponent {
         this.ui.showToast('Sesión iniciada', 'success');
         if (user.role === 'platform_admin') {
           void this.router.navigate(['/admin/dashboard']);
+        } else if (user.role === 'driver') {
+          void this.router.navigate(['/driver/dashboard']);
         } else {
           void this.router.navigate(['/dashboard']);
         }
