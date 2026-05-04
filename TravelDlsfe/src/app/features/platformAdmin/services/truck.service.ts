@@ -18,11 +18,13 @@ export class TruckService {
     page?: number;
     perPage?: number;
     idCompany?: number;
+    search?: string;
   }): Observable<TruckPaginator> {
     let p = new HttpParams()
       .set('page', params.page ?? 1)
       .set('perPage', params.perPage ?? 10);
     if (params.idCompany) p = p.set('idCompany', params.idCompany);
+    if (params.search)    p = p.set('search', params.search);
     return this.http.get<TruckPaginator>(`${this.base}/api/trucks`, { params: p });
   }
 

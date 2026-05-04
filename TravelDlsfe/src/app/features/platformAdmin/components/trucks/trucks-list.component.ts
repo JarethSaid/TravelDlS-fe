@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { TruckService } from '../../service/truck.service';
+import { TruckService } from '../../services/truck.service';
 import { Truck } from '../../interface/truck.interface';
 import { InteractionService } from '../../../../shared/service/interaction.service';
 import { getHttpErrorMessage } from '../../../../core/http/http-error.util';
@@ -30,8 +30,9 @@ import { TruckFormComponent } from './truck-form.component';
           <input
             class="input-busqueda"
             type="text"
-            placeholder="Filtrar por placa…"
+            placeholder="Buscar por placa o chasis…"
             [(ngModel)]="searchTerm"
+            (ngModelChange)="onSearch()"
           />
         </div>
       </div>
@@ -57,12 +58,12 @@ import { TruckFormComponent } from './truck-form.component';
                   <i class="fa-solid fa-spinner fa-spin"></i> Cargando…
                 </td>
               </tr>
-            } @else if (filteredTrucks().length === 0) {
+            } @else if (trucks().length === 0) {
               <tr>
                 <td colspan="7" class="tabla-vacia">No se encontraron camiones.</td>
               </tr>
             } @else {
-              @for (t of filteredTrucks(); track t.idTruck) {
+              @for (t of trucks(); track t.idTruck) {
                 <tr>
                   <td class="txt-negrita">{{ t.plate }}</td>
                   <td>{{ t.chassis }}</td>
@@ -112,23 +113,7 @@ import { TruckFormComponent } from './truck-form.component';
       />
     }
   `,
-  styles: `
-    .page-header {
-      display: flex; align-items: flex-start; justify-content: space-between;
-      margin-bottom: 24px; flex-wrap: wrap; gap: 16px;
-    }
-    .page-title { margin: 0 0 4px; font-size: 24px; font-weight: 800; color: #1e293b; }
-    .page-sub { margin: 0; font-size: 13px; color: #64748b; }
-    .btn-nuevo {
-      background: #3d39af; color: white; border: none; padding: 11px 20px;
-      border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer;
-      display: flex; align-items: center; gap: 8px; transition: 0.2s; white-space: nowrap;
-    }
-    .btn-nuevo:hover { opacity: 0.88; transform: translateY(-1px); }
-    .badge-estado { font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 20px; }
-    .badge-activo { background: #dcfce7; color: #16a34a; }
-    .badge-inactivo { background: #fee2e2; color: #dc2626; }
-  `,
+  styles: ``,
 })
 export class TrucksListComponent implements OnInit {
   private readonly svc = inject(TruckService);
@@ -143,23 +128,23 @@ export class TrucksListComponent implements OnInit {
   showForm = signal(false);
   editingTruck = signal<Truck | null>(null);
 
-  filteredTrucks() {
-    if (!this.searchTerm.trim()) return this.trucks();
-    const term = this.searchTerm.toLowerCase();
-    return this.trucks().filter(
-      (t) =>
-        t.plate?.toLowerCase().includes(term) ||
-        t.chassis?.toLowerCase().includes(term)
-    );
-  }
+  private searchTimeout: ReturnType<typeof setTimeout> | null = null;
 
   ngOnInit(): void {
     this.load();
   }
 
+  onSearch(): void {
+    if (this.searchTimeout) clearTimeout(this.searchTimeout);
+    this.searchTimeout = setTimeout(() => {
+      this.currentPage.set(1);
+      this.load();
+    }, 400);
+  }
+
   load(): void {
     this.loading.set(true);
-    this.svc.list({ page: this.currentPage(), perPage: 10 }).subscribe({
+    this.svc.list({ page: this.currentPage(), perPage: 10, search: this.searchTerm || undefined }).subscribe({
       next: (res) => {
         this.trucks.set(res.data);
         this.total.set(res.meta.total);
