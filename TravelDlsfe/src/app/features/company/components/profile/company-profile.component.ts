@@ -2,7 +2,7 @@ import { Component, inject, signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { AuthService } from '../../../../core/services/auth.service';
-import { CompanyService } from '../../../platformAdmin/service/company.service';
+import { CompanyService } from '../../../platformAdmin/services/company.service';
 import { Company } from '../../../platformAdmin/interface/company.interface';
 import { InteractionService } from '../../../../shared/service/interaction.service';
 import { getHttpErrorMessage } from '../../../../core/http/http-error.util';

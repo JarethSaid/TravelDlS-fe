@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { CompanyService } from '../../service/company.service';
+import { CompanyService } from '../../services/company.service';
 import { Company } from '../../interface/company.interface';
 import { InteractionService } from '../../../../shared/service/interaction.service';
 import { getHttpErrorMessage } from '../../../../core/http/http-error.util';
@@ -110,51 +110,7 @@ import { CompanyFormComponent } from './company-form.component';
       />
     }
   `,
-  styles: `
-    .page-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      margin-bottom: 24px;
-      flex-wrap: wrap;
-      gap: 16px;
-    }
-    .page-title {
-      margin: 0 0 4px;
-      font-size: 24px;
-      font-weight: 800;
-      color: #1e293b;
-    }
-    .page-sub {
-      margin: 0;
-      font-size: 13px;
-      color: #64748b;
-    }
-    .btn-nuevo {
-      background: #3d39af;
-      color: white;
-      border: none;
-      padding: 11px 20px;
-      border-radius: 12px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      transition: 0.2s;
-      white-space: nowrap;
-    }
-    .btn-nuevo:hover { opacity: 0.88; transform: translateY(-1px); }
-    .badge-estado {
-      font-size: 12px;
-      font-weight: 600;
-      padding: 4px 12px;
-      border-radius: 20px;
-    }
-    .badge-activo { background: #dcfce7; color: #16a34a; }
-    .badge-inactivo { background: #fee2e2; color: #dc2626; }
-  `,
+  styles: ``,
 })
 export class CompaniesListComponent implements OnInit {
   private readonly svc = inject(CompanyService);

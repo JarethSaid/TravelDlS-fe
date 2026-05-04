@@ -1,10 +1,17 @@
-import { Component, Input, Output, EventEmitter, OnInit, inject } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { CompanyService } from '../../service/company.service';
+import { CompanyService } from '../../services/company.service';
 import { Company } from '../../interface/company.interface';
 import { InteractionService } from '../../../../shared/service/interaction.service';
 import { getHttpErrorMessage } from '../../../../core/http/http-error.util';
+import { UserService } from '../../services/user.service';
+
+interface UserOption {
+  idUser: number;
+  name: string;
+  email: string;
+}
 
 @Component({
   selector: 'app-company-form',
@@ -20,6 +27,38 @@ import { getHttpErrorMessage } from '../../../../core/http/http-error.util';
         <h2 class="modal-titulo">{{ company ? 'Editar Empresa' : 'Nueva Empresa' }}</h2>
 
         <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+          <!-- Usuario asignado (solo al crear) -->
+          @if (!company) {
+            <div class="campo">
+              <label for="userId">
+                Usuario Empresa <span class="req-mark">*</span>
+              </label>
+
+              @if (loadingUsers()) {
+                <div class="users-loading">
+                  <i class="fa-solid fa-spinner fa-spin"></i> Cargando usuarios…
+                </div>
+              } @else if (users().length === 0) {
+                <div class="users-empty">
+                  <i class="fa-solid fa-circle-exclamation"></i>
+                  No hay usuarios con rol "Empresa". Regístralos primero en la sección Usuarios.
+                </div>
+              } @else {
+                <select id="userId" class="input-auth" formControlName="userId">
+                  <option [ngValue]="null" disabled selected hidden>Seleccionar usuario…</option>
+                  @for (u of users(); track u.idUser) {
+                    <option [value]="u.idUser">{{ u.name }} — {{ u.email }}</option>
+                  }
+                </select>
+              }
+
+              @if (form.controls['userId'].invalid && form.controls['userId'].touched) {
+                <span class="error-text">Debes seleccionar un usuario</span>
+              }
+            </div>
+          }
+
           <div class="campo">
             <label for="businessName">Nombre de la Empresa</label>
             <input
@@ -63,70 +102,70 @@ import { getHttpErrorMessage } from '../../../../core/http/http-error.util';
             <button type="button" class="btn-cancelar-form" (click)="cancelled.emit()">
               Cancelar
             </button>
-            <button type="submit" class="btn-enviar" [disabled]="form.invalid || saving">
-              {{ saving ? 'Guardando…' : (company ? 'Actualizar' : 'Crear') }}
+            <button
+              type="submit"
+              class="btn-enviar"
+              [disabled]="form.invalid || saving() || (loadingUsers() && !company)"
+            >
+              {{ saving() ? 'Guardando…' : (company ? 'Actualizar' : 'Crear') }}
             </button>
           </div>
         </form>
       </div>
     </div>
   `,
-  styles: `
-    .modal-wider {
-      max-width: 480px !important;
-      text-align: left !important;
-    }
-    .optional {
-      color: #94a3b8;
-      font-size: 12px;
-      font-weight: 400;
-    }
-    .form-actions {
-      display: flex;
-      gap: 12px;
-      margin-top: 8px;
-    }
-    .btn-cancelar-form {
-      flex: 1;
-      padding: 12px;
-      border-radius: 12px;
-      border: 1.5px solid #e2e8f0;
-      background: white;
-      color: #64748b;
-      font-weight: 600;
-      cursor: pointer;
-      font-size: 14px;
-      transition: 0.2s;
-    }
-    .btn-cancelar-form:hover { background: #f1f5f9; }
-    .btn-enviar { flex: 1; font-size: 14px; }
-  `,
+  styles: ``,
 })
 export class CompanyFormComponent implements OnInit {
   @Input() company: Company | null = null;
   @Output() saved = new EventEmitter<void>();
   @Output() cancelled = new EventEmitter<void>();
 
-  private readonly fb = inject(FormBuilder);
+  private readonly fb  = inject(FormBuilder);
   private readonly svc = inject(CompanyService);
-  private readonly ui = inject(InteractionService);
+  private readonly ui  = inject(InteractionService);
+  private readonly userService = inject(UserService);
 
-  saving = false;
+  saving = signal(false);
+  users = signal<UserOption[]>([]);
+  loadingUsers = signal(false);
 
   readonly form = this.fb.group({
+    userId:       [null as number | null],
     businessName: ['', [Validators.required, Validators.minLength(2)]],
-    ruc: ['', [Validators.required, Validators.pattern(/^\d{11}$/)]],
-    photoUrl: [''],
+    ruc:          ['', [Validators.required, Validators.pattern(/^\d{11}$/)]],
+    photoUrl:     [''],
   });
 
   ngOnInit(): void {
     if (this.company) {
+      // Edit mode: patch values, userId not required
       this.form.patchValue({
         businessName: this.company.businessName,
-        ruc: this.company.ruc,
-        photoUrl: this.company.photoUrl ?? '',
+        ruc:          this.company.ruc,
+        photoUrl:     this.company.photoUrl ?? '',
       });
+    } else {
+      // Create mode: userId required
+      this.form.controls['userId'].setValidators([Validators.required]);
+      this.form.controls['userId'].updateValueAndValidity();
+      this.loadUsers();
     }
+  }
+
+  loadUsers(): void {
+    this.loadingUsers.set(true);
+    // Fetch unassigned users with role "company"
+    this.userService.getUnassignedCompanyUsers().subscribe({
+      next: (users) => {
+        this.users.set(users);
+        this.loadingUsers.set(false);
+      },
+      error: () => {
+        this.loadingUsers.set(false);
+        this.ui.showToast('No se pudieron cargar los usuarios', 'error');
+      },
+    });
   }
 
   onBackdrop(e: MouseEvent): void {
@@ -136,17 +175,22 @@ export class CompanyFormComponent implements OnInit {
   }
 
   onSubmit(): void {
-    if (this.form.invalid || this.saving) {
+    if (this.form.invalid || this.saving()) {
       this.form.markAllAsTouched();
       return;
     }
-    this.saving = true;
+    this.saving.set(true);
     const raw = this.form.getRawValue();
-    const payload = {
+
+    const payload: any = {
       businessName: raw.businessName!,
-      ruc: raw.ruc!,
-      photoUrl: raw.photoUrl || null,
+      ruc:          raw.ruc!,
+      photoUrl:     raw.photoUrl || null,
     };
+
+    if (!this.company && raw.userId) {
+      payload['userId'] = Number(raw.userId);
+    }
 
     const request$ = this.company
       ? this.svc.update(this.company.idCompany, payload)
@@ -154,11 +198,11 @@ export class CompanyFormComponent implements OnInit {
 
     request$.subscribe({
       next: () => {
-        this.saving = false;
+        this.saving.set(false);
         this.saved.emit();
       },
       error: (err) => {
-        this.saving = false;
+        this.saving.set(false);
         this.ui.showToast(getHttpErrorMessage(err), 'error');
       },
     });

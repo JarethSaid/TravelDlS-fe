@@ -1,9 +1,8 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
+import { DriverService } from '../../services/driver.service';
 import { AuthService } from '../../../../core/services/auth.service';
-import { API_BASE_URL } from '../../../../core/api-base-url';
 import { InteractionService } from '../../../../shared/service/interaction.service';
 import { getHttpErrorMessage } from '../../../../core/http/http-error.util';
 
@@ -73,11 +72,7 @@ interface DriverProfile {
               <input type="text" [(ngModel)]="passport" />
             </div>
 
-            <!-- Teléfono | Correo -->
-            <div class="field">
-              <label><i class="fa-solid fa-phone"></i> Teléfono</label>
-              <input type="text" [(ngModel)]="phone" />
-            </div>
+            <!-- Correo -->
             <div class="field">
               <label><i class="fa-regular fa-envelope"></i> Correo</label>
               <input type="email" [value]="profile()?.user?.email ?? user()?.email ?? ''" readonly />
@@ -100,9 +95,15 @@ interface DriverProfile {
           </div>
 
           <div class="form-actions">
-            <button class="btn-save" (click)="save()" [disabled]="saving()">
-              {{ saving() ? 'Guardando…' : 'Guardar cambios' }}
-            </button>
+            @if (user()?.idDriver) {
+              <button class="btn-save" (click)="save()" [disabled]="saving()">
+                {{ saving() ? 'Actualizando…' : 'Actualizar perfil' }}
+              </button>
+            } @else {
+              <button class="btn-save btn-create" (click)="save()" [disabled]="saving()">
+                {{ saving() ? 'Creando…' : 'Crear perfil' }}
+              </button>
+            }
           </div>
         }
       </div>
@@ -327,6 +328,14 @@ interface DriverProfile {
       cursor: not-allowed;
     }
 
+    .btn-create {
+      background: #16a34a;
+    }
+
+    .btn-create:hover {
+      background: #15803d;
+    }
+
     @media (max-width: 600px) {
       .form-grid {
         grid-template-columns: 1fr;
@@ -345,8 +354,7 @@ interface DriverProfile {
 })
 export class DriverProfileComponent implements OnInit {
   private readonly auth = inject(AuthService);
-  private readonly http = inject(HttpClient);
-  private readonly base = inject(API_BASE_URL);
+  private readonly driverService = inject(DriverService);
   private readonly ui = inject(InteractionService);
 
   readonly user = this.auth.user;
@@ -357,7 +365,6 @@ export class DriverProfileComponent implements OnInit {
   // Campos editables
   license = '';
   passport = '';
-  phone = '';
   status = 'available';
 
   ngOnInit(): void {
@@ -371,12 +378,11 @@ export class DriverProfileComponent implements OnInit {
       return;
     }
 
-    this.http.get<DriverProfile>(`${this.base}/api/drivers/${u.idDriver}`).subscribe({
+    this.driverService.getProfile(u.idDriver).subscribe({
       next: (driver) => {
         this.profile.set(driver);
         this.license = driver.license ?? '';
         this.passport = driver.passport ?? '';
-        this.phone = (driver.user as any)?.phone ?? '';
         this.status = driver.status ?? 'available';
         this.loading.set(false);
       },
@@ -389,22 +395,36 @@ export class DriverProfileComponent implements OnInit {
 
   save(): void {
     const u = this.user();
-    if (!u?.idDriver || this.saving()) return;
+    if (!u || this.saving()) return;
     this.saving.set(true);
     this.ui.showLoading();
 
     const body = {
+      userId: u.idUser,
       license: this.license,
       passport: this.passport,
       status: this.status,
     };
 
-    this.http.put(`${this.base}/api/drivers/${u.idDriver}`, body).subscribe({
+    const request$ = u.idDriver 
+      ? this.driverService.updateProfile(u.idDriver, body)
+      : this.driverService.createProfile(body);
+
+    request$.subscribe({
       next: () => {
-        this.ui.hideLoading();
-        this.saving.set(false);
-        this.ui.showToast('Perfil actualizado', 'success');
-        this.loadProfile();
+        if (!u.idDriver) {
+          this.auth.refreshSession().subscribe(() => {
+            this.ui.hideLoading();
+            this.saving.set(false);
+            this.ui.showToast('Perfil creado exitosamente', 'success');
+            this.loadProfile();
+          });
+        } else {
+          this.ui.hideLoading();
+          this.saving.set(false);
+          this.ui.showToast('Perfil actualizado', 'success');
+          this.loadProfile();
+        }
       },
       error: (err) => {
         this.ui.hideLoading();

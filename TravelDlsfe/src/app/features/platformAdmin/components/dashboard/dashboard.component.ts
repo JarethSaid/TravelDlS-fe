@@ -1,9 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
-import { API_BASE_URL } from '../../../../core/api-base-url';
-import { forkJoin } from 'rxjs';
-import { catchError, of } from 'rxjs';
+import { DashboardService } from '../../services/dashboard.service';
 
 interface StatCard {
   label: string;
@@ -264,16 +261,13 @@ interface StatCard {
   `,
 })
 export class AdminDashboardComponent implements OnInit {
-  private readonly http = inject(HttpClient);
-  private readonly base = inject(API_BASE_URL);
+  private readonly dashboardService = inject(DashboardService);
 
   readonly stats = signal<StatCard[]>([
-    { label: 'Empresas', value: 0, icon: 'fa-solid fa-building', color: '#6366f1', bg: '#ede9fe' },
-    { label: 'Conductores', value: 0, icon: 'fa-solid fa-id-card', color: '#0ea5e9', bg: '#e0f2fe' },
-    { label: 'Camiones', value: 0, icon: 'fa-solid fa-truck', color: '#f59e0b', bg: '#fef3c7' },
-    { label: 'Clientes', value: 0, icon: 'fa-solid fa-users', color: '#10b981', bg: '#d1fae5' },
-    { label: 'Choferes Disponibles', value: 0, icon: 'fa-solid fa-user-check', color: '#14b8a6', bg: '#ccfbf1' },
-    { label: 'Flota Asignada', value: 0, icon: 'fa-solid fa-truck-fast', color: '#8b5cf6', bg: '#ede9fe' },
+    { label: 'Empresas',    value: 0, icon: 'fa-solid fa-building', color: '#6366f1', bg: '#ede9fe' },
+    { label: 'Conductores', value: 0, icon: 'fa-solid fa-id-card',  color: '#0ea5e9', bg: '#e0f2fe' },
+    { label: 'Clientes',    value: 0, icon: 'fa-solid fa-users',    color: '#10b981', bg: '#d1fae5' },
+    { label: 'Disponibles', value: 0, icon: 'fa-solid fa-user-check', color: '#14b8a6', bg: '#ccfbf1' },
   ]);
 
   readonly driverBars = signal<{ label: string; value: number; pct: number }[]>([]);
@@ -284,28 +278,18 @@ export class AdminDashboardComponent implements OnInit {
   ngOnInit(): void {
     const circumference = 2 * Math.PI * 44; // ≈ 276.5
 
-    forkJoin({
-      companies: this.http.get<any>(`${this.base}/api/companies?perPage=1`).pipe(catchError(() => of({ meta: { total: 0 } }))),
-      trucks: this.http.get<any>(`${this.base}/api/trucks?perPage=100`).pipe(catchError(() => of({ data: [], meta: { total: 0 } }))),
-      clients: this.http.get<any>(`${this.base}/api/clients?perPage=100`).pipe(catchError(() => of({ data: [], meta: { total: 0 } }))),
-      drivers: this.http.get<any>(`${this.base}/api/drivers?perPage=100`).pipe(catchError(() => of({ data: [], meta: { total: 0 } }))),
-    }).subscribe((res) => {
+    this.dashboardService.getDashboardStats().subscribe((res) => {
       
       const drivers: any[] = res.drivers?.data ?? [];
-      const trucks: any[] = res.trucks?.data ?? [];
       const clients: any[] = res.clients?.data ?? [];
 
-      // Stats calculation
       const driversAvailable = drivers.filter(d => d.status === 'available').length;
-      const trucksAssigned = trucks.filter(t => t.idDriver != null).length;
 
       const updated = [...this.stats()];
       updated[0].value = res.companies?.meta?.total ?? 0;
       updated[1].value = res.drivers?.meta?.total ?? drivers.length;
-      updated[2].value = res.trucks?.meta?.total ?? trucks.length;
-      updated[3].value = res.clients?.meta?.total ?? clients.length;
-      updated[4].value = driversAvailable;
-      updated[5].value = trucksAssigned;
+      updated[2].value = res.clients?.meta?.total ?? clients.length;
+      updated[3].value = driversAvailable;
       this.stats.set(updated);
 
       // Driver bars

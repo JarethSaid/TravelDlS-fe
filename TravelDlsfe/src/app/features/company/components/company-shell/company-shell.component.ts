@@ -4,7 +4,7 @@ import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/rou
 import { AuthService } from '../../../../core/services/auth.service';
 import { InteractionService } from '../../../../shared/service/interaction.service';
 import { getHttpErrorMessage } from '../../../../core/http/http-error.util';
-import { CompanyService } from '../../../platformAdmin/service/company.service';
+import { CompanyService } from '../../../platformAdmin/services/company.service';
 import { Company } from '../../../platformAdmin/interface/company.interface';
 
 interface NavItem {
@@ -82,10 +82,6 @@ interface NavItem {
       <div class="main-content">
         <!-- Top Bar -->
         <header class="topbar">
-          <div class="topbar-search">
-            <i class="fa-solid fa-magnifying-glass search-icon"></i>
-            <input type="text" class="search-input" placeholder="Buscar..." />
-          </div>
           <div class="topbar-actions">
             <button class="notif-btn" type="button">
               <i class="fa-regular fa-bell"></i>
@@ -342,34 +338,6 @@ interface NavItem {
       justify-content: space-between;
       padding: 0 24px;
       flex-shrink: 0;
-    }
-
-    .topbar-search {
-      position: relative;
-    }
-
-    .search-icon {
-      position: absolute;
-      left: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: #94a3b8;
-      font-size: 13px;
-    }
-
-    .search-input {
-      padding: 8px 14px 8px 36px;
-      border: none;
-      background: #f1f5f9;
-      border-radius: 8px;
-      font-size: 14px;
-      outline: none;
-      width: 280px;
-      transition: 0.2s;
-    }
-
-    .search-input:focus {
-      background: #e2e8f0;
     }
 
     .topbar-actions {

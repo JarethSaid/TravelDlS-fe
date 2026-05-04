@@ -1,7 +1,7 @@
 import { Component, Input, Output, EventEmitter, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ClientService } from '../../service/client.service';
+import { ClientService } from '../../services/client.service';
 import { Client } from '../../interface/client.interface';
 import { InteractionService } from '../../../../shared/service/interaction.service';
 import { getHttpErrorMessage } from '../../../../core/http/http-error.util';
@@ -67,19 +67,7 @@ import { getHttpErrorMessage } from '../../../../core/http/http-error.util';
       </div>
     </div>
   `,
-  styles: `
-    .modal-wider { max-width: 500px !important; text-align: left !important; }
-    .optional { color: #94a3b8; font-size: 12px; font-weight: 400; }
-    .form-actions { display: flex; gap: 12px; margin-top: 8px; }
-    .btn-cancelar-form {
-      flex: 1; padding: 12px; border-radius: 12px;
-      border: 1.5px solid #e2e8f0; background: white;
-      color: #64748b; font-weight: 600; cursor: pointer; font-size: 14px; transition: 0.2s;
-    }
-    .btn-cancelar-form:hover { background: #f1f5f9; }
-    .btn-enviar { flex: 1; font-size: 14px; }
-    select.input-auth { cursor: pointer; }
-  `,
+  styles: ``,
 })
 export class ClientFormComponent implements OnInit {
   @Input() client: Client | null = null;

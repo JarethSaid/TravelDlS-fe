@@ -76,10 +76,6 @@ interface NavItem {
       <div class="main-content">
         <!-- Top bar -->
         <header class="topbar">
-          <div class="topbar-search">
-            <i class="fa-solid fa-magnifying-glass search-icon"></i>
-            <input type="text" class="search-input" placeholder="Buscar..." />
-          </div>
           <div class="topbar-actions">
             <button class="notif-btn" type="button">
               <i class="fa-regular fa-bell"></i>
@@ -310,37 +306,6 @@ interface NavItem {
       justify-content: space-between;
       padding: 0 28px;
       flex-shrink: 0;
-    }
-
-    .topbar-search {
-      position: relative;
-    }
-
-    .search-icon {
-      position: absolute;
-      left: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: #94a3b8;
-      font-size: 13px;
-    }
-
-    .search-input {
-      padding: 8px 14px 8px 36px;
-      border: 1.5px solid #e2e8f0;
-      border-radius: 10px;
-      font-size: 14px;
-      outline: none;
-      width: 220px;
-      transition: 0.2s;
-      font-family: inherit;
-      background: #f8fafc;
-    }
-
-    .search-input:focus {
-      border-color: #3d39af;
-      background: white;
-      box-shadow: 0 0 0 3px rgba(61,57,175,0.08);
     }
 
     .topbar-actions {

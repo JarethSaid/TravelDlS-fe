@@ -54,10 +54,10 @@ export const adminRoutes: Routes = [
           ),
       },
       {
-        path: 'orders',
+        path: 'users',
         loadComponent: () =>
-          import('../components/dashboard/dashboard.component').then(
-            (m) => m.AdminDashboardComponent
+          import('../components/users/users-admin.component').then(
+            (m) => m.UsersAdminComponent
           ),
       },
     ],
