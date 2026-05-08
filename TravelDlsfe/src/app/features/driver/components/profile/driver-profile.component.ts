@@ -87,7 +87,7 @@ interface DriverProfile {
               <label>Estado</label>
               <select [(ngModel)]="status">
                 <option value="available">Activo</option>
-                <option value="on_trip">En viaje</option>
+                <option value="ontrip">En viaje</option>
                 <option value="offline">Desconectado</option>
                 <option value="inactive">Inactivo</option>
               </select>
@@ -201,7 +201,7 @@ interface DriverProfile {
     }
 
     .status-available { background: #dcfce7; color: #16a34a; }
-    .status-on_trip   { background: #dbeafe; color: #1d4ed8; }
+    .status-ontrip    { background: #dbeafe; color: #1d4ed8; }
     .status-offline   { background: #f1f5f9; color: #64748b; }
     .status-inactive  { background: #fee2e2; color: #dc2626; }
 
@@ -406,7 +406,7 @@ export class DriverProfileComponent implements OnInit {
       status: this.status,
     };
 
-    const request$ = u.idDriver 
+    const request$ = u.idDriver
       ? this.driverService.updateProfile(u.idDriver, body)
       : this.driverService.createProfile(body);
 
@@ -437,9 +437,9 @@ export class DriverProfileComponent implements OnInit {
   statusLabel(status: string): string {
     const map: Record<string, string> = {
       available: 'Activo',
-      on_trip:   'En viaje',
-      offline:   'Desconectado',
-      inactive:  'Inactivo',
+      ontrip: 'En viaje',
+      offline: 'Desconectado',
+      inactive: 'Inactivo',
     };
     return map[status] ?? status;
   }

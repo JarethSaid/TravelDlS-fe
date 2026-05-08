@@ -19,6 +19,11 @@ export const guestGuard: CanActivateFn = async () => {
     return getDashboardRoute(auth.user()?.role);
   }
 
+  // Prevenir llamada innecesaria que causa error 401 en consola si sabemos que no hay sesión
+  if (!localStorage.getItem('has_session')) {
+    return true;
+  }
+
   try {
     await firstValueFrom(auth.refreshSession());
     if (auth.user()) {

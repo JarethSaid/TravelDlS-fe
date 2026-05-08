@@ -174,7 +174,6 @@ export class RegisterComponent {
     this.auth.signup({ name: name.trim(), email: email.trim(), password }).subscribe({
       next: (user) => {
         this.ui.hideLoading();
-        this.submitting = false;
         this.ui.showToast('Cuenta creada correctamente', 'success');
         if (user.role === 'platform_admin') {
           void this.router.navigate(['/admin/dashboard']);

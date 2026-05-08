@@ -299,7 +299,7 @@ export class AdminDashboardComponent implements OnInit {
       // Map API statuses to UI labels
       const statusTranslator: Record<string, string> = {
         'available': 'Disponible',
-        'on_trip': 'En viaje',
+        'ontrip': 'En viaje',
         'offline': 'Desconectado',
         'inactive': 'Inactivo'
       };
