@@ -16,10 +16,15 @@ interface NavItem {
   standalone: true,
   imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive],
   template: `
-    <div class="shell">
+    <div class="shell" [class.sidebar-collapsed]="isSidebarCollapsed()">
+
+      <!-- Overlay para mobile -->
+      @if (isMobileMenuOpen()) {
+        <div class="sidebar-overlay" (click)="isMobileMenuOpen.set(false)"></div>
+      }
 
       <!-- ===== SIDEBAR FIJO ===== -->
-      <aside class="sidebar">
+      <aside class="sidebar" [class.mobile-open]="isMobileMenuOpen()">
 
         <!-- Brand -->
         <div class="sidebar-brand">
@@ -27,12 +32,15 @@ interface NavItem {
             <i class="fa-solid fa-truck-fast"></i>
           </div>
           <span class="brand-name">TransLogix</span>
+          <button class="btn-collapse hidden-mobile" (click)="toggleSidebar()">
+            <i class="fa-solid" [class.fa-angle-left]="!isSidebarCollapsed()" [class.fa-angle-right]="isSidebarCollapsed()"></i>
+          </button>
         </div>
 
         <!-- Role badge -->
-        <div class="role-badge">
+        <div class="role-badge" [title]="isSidebarCollapsed() ? 'Conductor' : ''">
           <i class="fa-solid fa-id-card"></i>
-          Conductor
+          <span class="role-text">Conductor</span>
         </div>
 
         <!-- Nav -->
@@ -42,9 +50,11 @@ interface NavItem {
               class="nav-item"
               [routerLink]="item.route"
               routerLinkActive="nav-item--active"
+              (click)="isMobileMenuOpen.set(false)"
+              [title]="isSidebarCollapsed() ? item.label : ''"
             >
               <i [class]="item.icon"></i>
-              <span>{{ item.label }}</span>
+              <span class="nav-label">{{ item.label }}</span>
             </a>
           }
         </nav>
@@ -76,6 +86,11 @@ interface NavItem {
       <div class="main-content">
         <!-- Top bar -->
         <header class="topbar">
+          <div class="topbar-left">
+            <button class="menu-btn hidden-desktop" (click)="isMobileMenuOpen.set(true)">
+              <i class="fa-solid fa-bars"></i>
+            </button>
+          </div>
           <div class="topbar-actions">
             <button class="notif-btn" type="button">
               <i class="fa-regular fa-bell"></i>
@@ -360,6 +375,12 @@ export class DriverShellComponent {
 
   readonly loggingOut = signal(false);
   readonly user = this.auth.user;
+  readonly isSidebarCollapsed = signal(false);
+  readonly isMobileMenuOpen = signal(false);
+
+  toggleSidebar() {
+    this.isSidebarCollapsed.update(v => !v);
+  }
 
   // IMPORTANTE: Se ha removido el apartado de 'Conductores'
   readonly navItems: NavItem[] = [

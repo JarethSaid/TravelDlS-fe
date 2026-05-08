@@ -51,7 +51,7 @@ interface Driver {
         <select class="filter-select" [(ngModel)]="statusFilter" (ngModelChange)="onSearch()">
           <option value="">Todos los estados</option>
           <option value="available">Disponible</option>
-          <option value="on_trip">En viaje</option>
+          <option value="ontrip">En viaje</option>
           <option value="offline">Desconectado</option>
           <option value="inactive">Inactivo</option>
         </select>
@@ -198,7 +198,7 @@ export class DriversListComponent implements OnInit {
   statusLabel(status: string): string {
     const map: Record<string, string> = {
       available: 'Disponible',
-      on_trip:   'En viaje',
+      ontrip:    'En viaje',
       offline:   'Desconectado',
       inactive:  'Inactivo',
     };
@@ -208,7 +208,7 @@ export class DriversListComponent implements OnInit {
   statusBadgeClass(status: string): string {
     const map: Record<string, string> = {
       available: 'badge-status badge-available',
-      on_trip:   'badge-status badge-on_trip',
+      ontrip:    'badge-status badge-ontrip',
       offline:   'badge-status badge-offline',
       inactive:  'badge-status badge-inactive',
     };

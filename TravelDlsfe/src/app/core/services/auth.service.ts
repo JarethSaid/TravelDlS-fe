@@ -25,7 +25,10 @@ export class AuthService {
       .post<AuthSuccessResponse>(`${this.apiBase}/api/auth/login`, credentials)
       .pipe(
         switchMap(() => this.http.get<SessionUser>(`${this.apiBase}/api/auth/me`)),
-        tap((me) => this.user.set(me)),
+        tap((me) => {
+          this.user.set(me);
+          localStorage.setItem('has_session', '1');
+        }),
       );
   }
 
@@ -34,15 +37,24 @@ export class AuthService {
       .post<AuthSuccessResponse>(`${this.apiBase}/api/auth/signup`, data)
       .pipe(
         switchMap(() => this.http.get<SessionUser>(`${this.apiBase}/api/auth/me`)),
-        tap((me) => this.user.set(me)),
+        tap((me) => {
+          this.user.set(me);
+          localStorage.setItem('has_session', '1');
+        }),
       );
   }
 
   logout(): Observable<unknown> {
     return this.http.post(`${this.apiBase}/api/auth/logout`, {}).pipe(
       tap({
-        next: () => this.user.set(null),
-        error: () => this.user.set(null),
+        next: () => {
+          this.user.set(null);
+          localStorage.removeItem('has_session');
+        },
+        error: () => {
+          this.user.set(null);
+          localStorage.removeItem('has_session');
+        },
       }),
     );
   }
@@ -51,8 +63,14 @@ export class AuthService {
   refreshSession(): Observable<SessionUser | null> {
     return this.http.get<SessionUser>(`${this.apiBase}/api/auth/me`).pipe(
       tap({
-        next: (me) => this.user.set(me),
-        error: () => this.user.set(null),
+        next: (me) => {
+          this.user.set(me);
+          if (me) localStorage.setItem('has_session', '1');
+        },
+        error: () => {
+          this.user.set(null);
+          localStorage.removeItem('has_session');
+        },
       }),
     );
   }

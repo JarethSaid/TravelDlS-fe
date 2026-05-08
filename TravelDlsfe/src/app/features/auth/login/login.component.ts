@@ -127,7 +127,6 @@ export class LoginComponent {
     this.auth.login({ email: email.trim(), password }).subscribe({
       next: (user) => {
         this.ui.hideLoading();
-        this.submitting = false;
         this.ui.showToast('Sesión iniciada', 'success');
         if (user.role === 'platform_admin') {
           void this.router.navigate(['/admin/dashboard']);
