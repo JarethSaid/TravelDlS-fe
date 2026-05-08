@@ -411,7 +411,7 @@ body {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
-  min-width: 700px; /* Asegura que la tabla no se colapse */
+  min-width: 100%;
 }
 
 .tabla-resort th {
@@ -556,7 +556,10 @@ body {
   white-space: nowrap;
   font-family: inherit;
 }
-.btn-nuevo:hover { opacity: 0.88; transform: translateY(-1px); }
+.btn-nuevo:hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
 
 /* Badges de estado activo/inactivo */
 .badge-estado {
@@ -565,8 +568,14 @@ body {
   padding: 4px 12px;
   border-radius: 20px;
 }
-.badge-activo  { background: #dcfce7; color: #16a34a; }
-.badge-inactivo { background: #fee2e2; color: #dc2626; }
+.badge-activo {
+  background: #dcfce7;
+  color: #16a34a;
+}
+.badge-inactivo {
+  background: #fee2e2;
+  color: #dc2626;
+}
 
 /* Badges de tipo de cliente */
 .badge-tipo {
@@ -575,8 +584,14 @@ body {
   padding: 4px 10px;
   border-radius: 20px;
 }
-.badge-juridica { background: #ede9fe; color: #6d28d9; }
-.badge-natural  { background: #fef9c3; color: #92400e; }
+.badge-juridica {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+.badge-natural {
+  background: #fef9c3;
+  color: #92400e;
+}
 
 /* Badges de estado de conductor */
 .badge-status {
@@ -585,10 +600,22 @@ body {
   padding: 4px 10px;
   border-radius: 20px;
 }
-.badge-available { background: #dcfce7; color: #16a34a; }
-.badge-on_trip   { background: #dbeafe; color: #1d4ed8; }
-.badge-offline   { background: #f1f5f9; color: #64748b; }
-.badge-inactive  { background: #fee2e2; color: #dc2626; }
+.badge-available {
+  background: #dcfce7;
+  color: #16a34a;
+}
+.badge-on_trip {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+.badge-offline {
+  background: #f1f5f9;
+  color: #64748b;
+}
+.badge-inactive {
+  background: #fee2e2;
+  color: #dc2626;
+}
 
 /* Select de filtro */
 .filter-select {
@@ -602,7 +629,9 @@ body {
   cursor: pointer;
   font-family: inherit;
 }
-.filter-select:focus { border-color: #3d39af; }
+.filter-select:focus {
+  border-color: #3d39af;
+}
 
 /* Celda de conductor (avatar + info) */
 .driver-id-cell {
@@ -667,7 +696,9 @@ body {
   justify-content: center;
   gap: 8px;
 }
-.btn-cancelar-form:hover { background: #f1f5f9; }
+.btn-cancelar-form:hover {
+  background: #f1f5f9;
+}
 
 .btn-enviar {
   height: 46px;
@@ -693,7 +724,7 @@ body {
 .company-content-card {
   background: white;
   border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   border: 1px solid #e2e8f0;
   overflow: hidden;
 }
@@ -735,7 +766,7 @@ body {
 .company-search-input:focus {
   border-color: #3d39af;
   background: white;
-  box-shadow: 0 0 0 3px rgba(61,57,175,0.07);
+  box-shadow: 0 0 0 3px rgba(61, 57, 175, 0.07);
 }
 
 .btn-nuevo-company {
@@ -754,7 +785,10 @@ body {
   white-space: nowrap;
   font-family: inherit;
 }
-.btn-nuevo-company:hover { opacity: 0.88; transform: translateY(-1px); }
+.btn-nuevo-company:hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
 
 .empty-state-company {
   display: flex;
@@ -805,4 +839,294 @@ body {
   line-height: 1.5;
 }
 
-select.input-auth { cursor: pointer; }
+select.input-auth {
+  cursor: pointer;
+}
+
+/* ===== RESPONSIVE GLOBAL & MOBILE LAYOUT ===== */
+html {
+  box-sizing: border-box;
+  scroll-behavior: smooth;
+}
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
+}
+body {
+  min-height: 100vh;
+  background: var(--gris);
+}
+img,
+svg,
+video {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.contenedor-estandar {
+  width: min(1200px, 100%);
+  padding: 0 18px;
+}
+
+.seccion-layout {
+  padding: 20px 0 40px;
+}
+
+.cabecera-pagina {
+  padding: 0 0 10px;
+}
+
+.tabla-contenedor {
+  width: 100%;
+}
+
+.tabla-resort th,
+.tabla-resort td {
+  padding: 14px 16px;
+}
+
+.btn-nuevo,
+.btn-nuevo-company,
+.btn-resort,
+.btn-resort-primario,
+.btn-resort-outline,
+.btn-resort-danger,
+.btn-cancelar-form,
+.btn-enviar {
+  min-height: 44px;
+}
+
+.form-actions {
+  flex-wrap: wrap;
+}
+
+.form-actions > * {
+  flex: 1 1 180px;
+}
+
+.modal-caja,
+.modal-wider {
+  width: min(100%, 520px);
+  margin: 0 10px;
+}
+
+.company-toolbar,
+.barra-acciones,
+.page-header,
+.acciones-celda {
+  flex-wrap: wrap;
+}
+
+.company-toolbar,
+.barra-acciones {
+  gap: 12px;
+}
+
+.company-search-box,
+.contenedor-busqueda {
+  width: 100%;
+}
+
+@media (max-width: 1024px) {
+  .seccion-layout {
+    padding: 18px 0 32px;
+  }
+
+  .cabecera-pagina h2 {
+    font-size: clamp(24px, 6vw, 34px);
+  }
+
+  .cabecera-pagina p {
+    font-size: 15px;
+    max-width: 100%;
+  }
+
+  .company-toolbar,
+  .barra-acciones,
+  .page-header {
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .company-search-box,
+  .contenedor-busqueda {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .grid-dinamico {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .company-toolbar,
+  .barra-acciones {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .company-content-card {
+    overflow: hidden;
+  }
+
+  .tarjeta-resort {
+    padding: 22px;
+  }
+
+  .tarjeta-header,
+  .tarjeta-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .modal-caja,
+  .modal-wider {
+    padding: 22px 18px;
+  }
+
+  .form-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .form-actions > * {
+    width: 100%;
+  }
+
+  .btn-nuevo,
+  .btn-nuevo-company {
+    justify-content: center;
+  }
+
+  .tabla-resort th,
+  .tabla-resort td {
+    padding: 12px 12px;
+  }
+
+  .tabla-contenedor {
+    margin-left: -18px;
+    margin-right: -18px;
+    border-radius: 0;
+  }
+
+  .tabla-contenedor > .tabla-resort {
+    min-width: 100%;
+  }
+
+  .driver-id-cell {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .texto-truncado {
+    white-space: normal;
+  }
+}
+
+@media (max-width: 576px) {
+  .cabecera-pagina {
+    margin-bottom: 32px;
+  }
+
+  .cabecera-pagina h2 {
+    font-size: 28px;
+  }
+
+  .cabecera-pagina p {
+    font-size: 14px;
+  }
+
+  .modal-caja {
+    border-radius: 22px;
+  }
+
+  .input-auth,
+  .company-search-input,
+  .filter-select,
+  select.input-auth {
+    padding: 14px 14px;
+  }
+
+  .btn-resort,
+  .btn-resort-primario,
+  .btn-resort-outline,
+  .btn-resort-danger,
+  .btn-nuevo,
+  .btn-nuevo-company,
+  .btn-cancelar-form,
+  .btn-enviar {
+    padding: 13px 16px;
+    font-size: 14px;
+  }
+
+  .page-header,
+  .company-toolbar,
+  .barra-acciones {
+    gap: 14px;
+  }
+
+}
+
+/* ===== RESPONSIVE COMPLEMENTARIO GLOBAL ===== */
+
+/* Evitar overflow horizontal en toda la app */
+html,
+body {
+  overflow-x: hidden;
+}
+
+/* Topbar: botón hamburger (oculto por defecto en desktop) */
+.hamburger-btn {
+  display: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1.5px solid #e2e8f0;
+  background: white;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: #334155;
+  transition: 0.2s;
+}
+.hamburger-btn:hover {
+  border-color: #3d39af;
+  color: #3d39af;
+}
+
+/* Overlay del sidebar en móvil */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  backdrop-filter: blur(2px);
+}
+.sidebar-overlay.active {
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .hamburger-btn {
+    display: flex;
+  }
+}

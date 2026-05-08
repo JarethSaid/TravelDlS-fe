@@ -143,6 +143,13 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
       text-decoration: underline;
       margin-left: 4px;
     }
+    @media (max-width: 400px) {
+      .auth-shell {
+        padding: 16px;
+        align-items: flex-start;
+        padding-top: 40px;
+      }
+    }
   `,
 })
 export class RegisterComponent {

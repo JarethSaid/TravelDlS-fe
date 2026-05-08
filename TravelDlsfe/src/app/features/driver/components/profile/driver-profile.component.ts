@@ -336,18 +336,53 @@ interface DriverProfile {
       background: #15803d;
     }
 
-    @media (max-width: 600px) {
+    @media (max-width: 768px) {
+      .profile-page {
+        max-width: 100%;
+      }
+      .header-card {
+        padding: 20px;
+      }
+      .info-card {
+        padding: 20px;
+      }
       .form-grid {
         grid-template-columns: 1fr;
       }
+      .field.full-width {
+        grid-column: 1;
+      }
+      .form-actions {
+        justify-content: stretch;
+      }
+      .btn-save {
+        width: 100%;
+        justify-content: center;
+      }
+    }
 
+    @media (max-width: 480px) {
+      .header-card {
+        padding: 16px;
+      }
+      .info-card {
+        padding: 16px;
+      }
       .avatar-section {
         flex-direction: column;
         text-align: center;
+        gap: 16px;
       }
-
       .header-info {
         align-items: center;
+      }
+      .avatar {
+        width: 72px;
+        height: 72px;
+        font-size: 28px;
+      }
+      .form-grid {
+        grid-template-columns: 1fr;
       }
     }
   `]

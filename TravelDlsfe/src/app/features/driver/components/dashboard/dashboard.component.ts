@@ -160,6 +160,37 @@ interface StatCard {
       font-size: 14px;
       height: 100px;
     }
+
+    @media (max-width: 768px) {
+      .stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .stat-card {
+        padding: 16px;
+        gap: 12px;
+      }
+      .stat-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+      }
+      .stat-value {
+        font-size: 20px;
+      }
+      .recent-trips {
+        padding: 18px;
+      }
+      .header-section h1 {
+        font-size: 20px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+    }
   `]
 })
 export class DriverDashboardComponent implements OnInit {

@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { InteractionComponent } from './shared/components/interaction.ts';
+import { InteractionComponent } from './shared/components/interaction';
 
 @Component({
   selector: 'app-root',
