@@ -350,30 +350,106 @@ body {
 
 /* --- PAGINACIÓN --- */
 .paginacion-estandar {
-  margin-top: 50px;
+  margin-top: 20px;
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
-  gap: 15px;
+  padding: 15px 20px;
+  background: white;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+}
+
+.pag-rango {
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.pag-controles {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pag-info {
+  margin: 0 10px;
+  font-size: 14px;
+  color: #334155;
+}
+
+/* Numeros de paginacion */
+.pag-numeros {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 5px;
+}
+
+.btn-pag-num {
+  min-width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: 0.2s;
+  display: grid;
+  place-items: center;
+  padding: 0 10px;
+}
+
+.btn-pag-num:hover:not(:disabled) {
+  background: #f1f5f9;
+  color: var(--primario);
+}
+
+.btn-pag-num.active {
+  background: var(--primario);
+  color: white;
+  border-color: var(--primario);
+  box-shadow: 0 4px 10px rgba(61, 57, 175, 0.2);
+}
+
+.btn-pag-num:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pag-ellipsis {
+  color: #94a3b8;
+  font-weight: 600;
+  padding: 0 4px;
 }
 
 .btn-pag {
   background: white;
-  border: 1px solid var(--primario);
-  padding: 8px 16px;
-  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
   cursor: pointer;
   font-weight: 600;
+  transition: 0.2s;
 }
 
-.btn-pag:hover {
-  background: var(--primario);
-  color: white;
+.btn-pag:hover:not(:disabled) {
+  background: #f1f5f9;
+  color: var(--primario);
+  border-color: #cbd5e1;
 }
 
 .btn-pag:disabled {
-  opacity: 0.4;
-  border-color: #eee;
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f8fafc;
 }
 
 /* --- BARRA DE BÚSQUEDA LISTADOS --- */
@@ -382,6 +458,19 @@ body {
   gap: 15px;
   align-items: center;
   width: 100%;
+}
+
+.per-page-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.per-page-label {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
 }
 
 .contenedor-busqueda {
@@ -572,7 +661,42 @@ body {
   color: #64748b;
 }
 
-/* Botón "+ Nuevo X" */
+/* Botón "+ Nuevo X" y Refresh */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-refresh {
+  background: white;
+  color: #64748b;
+  border: 1.5px solid #e2e8f0;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-refresh:hover {
+  background: #f8fafc;
+  color: var(--primario);
+  border-color: #cbd5e1;
+}
+
+.btn-refresh.spinning i {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  100% { transform: rotate(360deg); }
+}
+
 .btn-nuevo {
   background: #3d39af;
   color: white;

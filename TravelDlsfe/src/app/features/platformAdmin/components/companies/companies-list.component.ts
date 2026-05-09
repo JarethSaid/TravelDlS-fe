@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CompanyService } from '../../services/company.service';
@@ -19,9 +19,14 @@ import { CompanyFormComponent } from './company-form.component';
           <h1 class="page-title">Empresas</h1>
           <p class="page-sub">{{ total() }} empresas registradas</p>
         </div>
-        <button class="btn-nuevo" (click)="openCreate()">
-          <i class="fa-solid fa-plus"></i> Nueva Empresa
-        </button>
+        <div class="header-actions">
+          <button class="btn-refresh" [class.spinning]="loading()" (click)="refresh()" title="Actualizar lista">
+            <i class="fa-solid fa-rotate-right"></i>
+          </button>
+          <button class="btn-nuevo" (click)="openCreate()">
+            <i class="fa-solid fa-plus"></i> Nueva Empresa
+          </button>
+        </div>
       </div>
 
       <!-- Search bar -->
@@ -35,6 +40,15 @@ import { CompanyFormComponent } from './company-form.component';
             [(ngModel)]="searchTerm"
             (ngModelChange)="onSearch()"
           />
+        </div>
+        <div class="per-page-control">
+          <label class="per-page-label">Por página:</label>
+          <select class="filter-select" [(ngModel)]="perPage" (ngModelChange)="onPerPageChange()">
+            <option [value]="5">5</option>
+            <option [value]="10">10</option>
+            <option [value]="25">25</option>
+            <option [value]="50">50</option>
+          </select>
         </div>
       </div>
 
@@ -88,17 +102,39 @@ import { CompanyFormComponent } from './company-form.component';
       </div>
 
       <!-- Pagination -->
-      @if (totalPages() > 1) {
-        <div class="paginacion-estandar">
-          <button class="btn-pag" [disabled]="currentPage() <= 1" (click)="goPage(currentPage() - 1)">
+      <div class="paginacion-estandar">
+        <span class="pag-rango">{{ rangeLabel() }}</span>
+        <div class="pag-controles">
+          <button class="btn-pag" [disabled]="currentPage() <= 1 || loading()" (click)="goPage(1)" title="Primera página">
+            <i class="fa-solid fa-angles-left"></i>
+          </button>
+          <button class="btn-pag" [disabled]="currentPage() <= 1 || loading()" (click)="goPage(currentPage() - 1)">
             <i class="fa-solid fa-chevron-left"></i>
           </button>
-          <span>Página {{ currentPage() }} de {{ totalPages() }}</span>
-          <button class="btn-pag" [disabled]="currentPage() >= totalPages()" (click)="goPage(currentPage() + 1)">
+          <div class="pag-numeros">
+            @for (p of pagesArray(); track $index) {
+              @if (p === '...') {
+                <span class="pag-ellipsis">...</span>
+              } @else {
+                <button
+                  class="btn-pag-num"
+                  [class.active]="p === currentPage()"
+                  (click)="goPage($any(p))"
+                  [disabled]="loading()"
+                >
+                  {{ p }}
+                </button>
+              }
+            }
+          </div>
+          <button class="btn-pag" [disabled]="currentPage() >= totalPages() || loading()" (click)="goPage(currentPage() + 1)">
             <i class="fa-solid fa-chevron-right"></i>
           </button>
+          <button class="btn-pag" [disabled]="currentPage() >= totalPages() || loading()" (click)="goPage(totalPages())" title="Última página">
+            <i class="fa-solid fa-angles-right"></i>
+          </button>
         </div>
-      }
+      </div>
     </div>
 
     <!-- Modal Form -->
@@ -121,9 +157,36 @@ export class CompaniesListComponent implements OnInit {
   total = signal(0);
   currentPage = signal(1);
   totalPages = signal(1);
+  perPage = 10;
   searchTerm = '';
   showForm = signal(false);
   editingCompany = signal<Company | null>(null);
+
+  rangeLabel = computed(() => {
+    const t = this.total();
+    if (t === 0) return 'Sin resultados';
+    const start = (this.currentPage() - 1) * this.perPage + 1;
+    const end = Math.min(this.currentPage() * this.perPage, t);
+    return `Mostrando ${start}–${end} de ${t}`;
+  });
+
+  pagesArray = computed(() => {
+    const total = this.totalPages();
+    const current = this.currentPage();
+    const pages: (number | string)[] = [];
+    if (total <= 5) {
+      for (let i = 1; i <= total; i++) pages.push(i);
+    } else {
+      if (current <= 3) {
+        pages.push(1, 2, 3, 4, '...', total);
+      } else if (current >= total - 2) {
+        pages.push(1, '...', total - 3, total - 2, total - 1, total);
+      } else {
+        pages.push(1, '...', current - 1, current, current + 1, '...', total);
+      }
+    }
+    return pages;
+  });
 
   private searchTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -134,7 +197,7 @@ export class CompaniesListComponent implements OnInit {
   load(): void {
     this.loading.set(true);
     this.svc
-      .list({ page: this.currentPage(), perPage: 10, search: this.searchTerm || undefined })
+      .list({ page: this.currentPage(), perPage: this.perPage, search: this.searchTerm || undefined })
       .subscribe({
         next: (res) => {
           this.companies.set(res.data);
@@ -149,12 +212,22 @@ export class CompaniesListComponent implements OnInit {
       });
   }
 
+  refresh(): void {
+    this.load();
+    this.ui.showToast('Lista actualizada', 'success');
+  }
+
   onSearch(): void {
     if (this.searchTimeout) clearTimeout(this.searchTimeout);
     this.searchTimeout = setTimeout(() => {
       this.currentPage.set(1);
       this.load();
     }, 400);
+  }
+
+  onPerPageChange(): void {
+    this.currentPage.set(1);
+    this.load();
   }
 
   goPage(p: number): void {
