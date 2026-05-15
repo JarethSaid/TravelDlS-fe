@@ -35,5 +35,12 @@ export const routes: Routes = [
     loadChildren: () =>
       import('./features/company/routes/company.routes').then((m) => m.companyRoutes),
   },
+  {
+    path: 'client',
+    canActivate: [authGuard, roleGuard('client')],
+    loadChildren: () =>
+      import('./features/client/routes/client.routes').then((m) => m.clientRoutes),
+  },
   { path: '**', redirectTo: 'login' },
 ];
+

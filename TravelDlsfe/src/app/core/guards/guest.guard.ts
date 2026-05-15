@@ -12,6 +12,7 @@ export const guestGuard: CanActivateFn = async () => {
     if (role === 'platform_admin') return router.createUrlTree(['/admin/dashboard']);
     if (role === 'driver') return router.createUrlTree(['/driver/dashboard']);
     if (role === 'company') return router.createUrlTree(['/company/dashboard']);
+    if (role === 'client') return router.createUrlTree(['/client/dashboard']);
     return true; // No route, stay here to prevent loop
   };
 

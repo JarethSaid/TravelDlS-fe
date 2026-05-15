@@ -1,24 +1,14 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { DriverService } from '../../services/driver.service';
+import { ClientService } from '../../services/client.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { InteractionService } from '../../../../shared/service/interaction.service';
 import { getHttpErrorMessage } from '../../../../core/http/http-error.util';
-
-interface DriverProfile {
-  idDriver: number;
-  license: string;
-  passport: string;
-  photoUrl: string | null;
-  status: string;
-  idCompany: number;
-  company?: { idCompany: number; businessName: string };
-  user?: { name: string; email: string; phone?: string };
-}
+import { ClientProfile } from '../../interface/client.interface';
 
 @Component({
-  selector: 'app-driver-profile',
+  selector: 'app-client-profile',
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
@@ -28,20 +18,17 @@ interface DriverProfile {
         <div class="avatar-section">
           <div class="avatar-wrapper">
             <div class="avatar">
-              <i class="fa-solid fa-user-large"></i>
+              <i class="fa-solid fa-building"></i>
             </div>
             <button class="camera-btn" type="button">
               <i class="fa-solid fa-camera"></i>
             </button>
           </div>
           <div class="header-info">
-            <h1>{{ profile()?.user?.name ?? user()?.name ?? 'Conductor' }}</h1>
+            <h1>{{ profile()?.companyName ?? user()?.name ?? 'Cliente' }}</h1>
             <p class="header-email">{{ profile()?.user?.email ?? user()?.email ?? '' }}</p>
-            <span
-              class="status-badge"
-              [class]="'status-badge status-' + (profile()?.status ?? 'available')"
-            >
-              {{ statusLabel(profile()?.status ?? 'available') }}
+            <span class="type-badge">
+              {{ profile()?.typeClient === 'legal' ? 'Persona Jurídica' : (profile()?.typeClient === 'natural' ? 'Persona Natural' : 'Cliente') }}
             </span>
           </div>
         </div>
@@ -49,7 +36,7 @@ interface DriverProfile {
 
       <!-- Info card -->
       <div class="info-card">
-        <h2 class="section-title">Información personal</h2>
+        <h2 class="section-title">Información de la empresa/cliente</h2>
         <hr class="divider" />
 
         @if (loading()) {
@@ -58,54 +45,55 @@ interface DriverProfile {
           </div>
         } @else {
           <div class="form-grid">
-            <!-- Nombre completo (full width) -->
+            <!-- Nombre de Empresa -->
             <div class="field full-width">
-              <label>Nombre completo</label>
-              <input type="text" [value]="profile()?.user?.name ?? user()?.name ?? ''" readonly />
+              <label><i class="fa-regular fa-building"></i> Nombre / Razón Social</label>
+              <input type="text" [(ngModel)]="companyName" placeholder="Ej. Logistics SA" />
             </div>
 
-            <!-- Licencia | Pasaporte -->
+            <!-- RUC / Documento -->
             <div class="field">
-              <label><i class="fa-regular fa-id-card"></i> Licencia</label>
-              <input type="text" [(ngModel)]="license" />
-            </div>
-            <div class="field">
-              <label><i class="fa-regular fa-address-card"></i> Pasaporte</label>
-              <input type="text" [(ngModel)]="passport" />
+              <label><i class="fa-regular fa-id-card"></i> RUC / Documento</label>
+              <input type="text" [(ngModel)]="ruc" placeholder="Número de documento" />
             </div>
 
-            <!-- Correo -->
+            <!-- Tipo de cliente -->
             <div class="field">
-              <label><i class="fa-regular fa-envelope"></i> Correo</label>
+              <label><i class="fa-solid fa-tag"></i> Tipo de Cliente</label>
+              <select [(ngModel)]="typeClient">
+                <option value="legal">Persona Jurídica</option>
+                <option value="natural">Persona Natural</option>
+              </select>
+            </div>
+
+            <!-- Dirección (full width) -->
+            <div class="field full-width">
+              <label><i class="fa-solid fa-location-dot"></i> Dirección completa</label>
+              <input type="text" [(ngModel)]="address" placeholder="Ej. Av. Principal 123" />
+            </div>
+
+            <!-- Correo del usuario asociado (readonly) -->
+            <div class="field">
+              <label><i class="fa-regular fa-envelope"></i> Correo de usuario</label>
               <input
                 type="email"
                 [value]="profile()?.user?.email ?? user()?.email ?? ''"
                 readonly
               />
             </div>
-
-            <!-- Compañía | Estado -->
+            
             <div class="field">
-              <label><i class="fa-regular fa-building"></i> Compañía</label>
+              <label><i class="fa-regular fa-user"></i> Nombre de usuario</label>
               <input
                 type="text"
-                [value]="profile()?.company?.businessName ?? 'Sin asignar'"
+                [value]="profile()?.user?.name ?? user()?.name ?? ''"
                 readonly
               />
-            </div>
-            <div class="field">
-              <label>Estado</label>
-              <select [(ngModel)]="status">
-                <option value="available">Activo</option>
-                <option value="ontrip">En viaje</option>
-                <option value="offline">Desconectado</option>
-                <option value="inactive">Inactivo</option>
-              </select>
             </div>
           </div>
 
           <div class="form-actions">
-            @if (user()?.idDriver) {
+            @if (user()?.idClient) {
               <button class="btn-save" (click)="save()" [disabled]="saving()">
                 {{ saving() ? 'Actualizando…' : 'Actualizar perfil' }}
               </button>
@@ -167,7 +155,7 @@ interface DriverProfile {
         width: 30px;
         height: 30px;
         border-radius: 50%;
-        background: #3d39af;
+        background: #10b981;
         color: white;
         border: 3px solid white;
         display: grid;
@@ -178,7 +166,7 @@ interface DriverProfile {
       }
 
       .camera-btn:hover {
-        background: #2d2a8a;
+        background: #059669;
       }
 
       .header-info {
@@ -200,7 +188,7 @@ interface DriverProfile {
         color: #64748b;
       }
 
-      .status-badge {
+      .type-badge {
         display: inline-flex;
         align-items: center;
         font-size: 12px;
@@ -209,23 +197,8 @@ interface DriverProfile {
         border-radius: 20px;
         width: fit-content;
         margin-top: 4px;
-      }
-
-      .status-available {
-        background: #dcfce7;
-        color: #16a34a;
-      }
-      .status-ontrip {
-        background: #dbeafe;
-        color: #1d4ed8;
-      }
-      .status-offline {
-        background: #f1f5f9;
-        color: #64748b;
-      }
-      .status-inactive {
-        background: #fee2e2;
-        color: #dc2626;
+        background: #d1fae5;
+        color: #059669;
       }
 
       /* ===== INFO CARD ===== */
@@ -241,7 +214,7 @@ interface DriverProfile {
         margin: 0;
         font-size: 18px;
         font-weight: 700;
-        color: #3d39af;
+        color: #10b981;
       }
 
       .divider {
@@ -304,8 +277,8 @@ interface DriverProfile {
 
       .field input:focus,
       .field select:focus {
-        border-color: #3d39af;
-        box-shadow: 0 0 0 3px rgba(61, 57, 175, 0.08);
+        border-color: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.08);
       }
 
       .field input[readonly] {
@@ -333,7 +306,7 @@ interface DriverProfile {
 
       .btn-save {
         padding: 11px 32px;
-        background: #3d39af;
+        background: #10b981;
         color: white;
         border: none;
         border-radius: 10px;
@@ -345,7 +318,7 @@ interface DriverProfile {
       }
 
       .btn-save:hover {
-        background: #2d2a8a;
+        background: #059669;
       }
 
       .btn-save:disabled {
@@ -354,11 +327,11 @@ interface DriverProfile {
       }
 
       .btn-create {
-        background: #16a34a;
+        background: #3b82f6;
       }
 
       .btn-create:hover {
-        background: #15803d;
+        background: #2563eb;
       }
 
       @media (max-width: 600px) {
@@ -378,20 +351,21 @@ interface DriverProfile {
     `,
   ],
 })
-export class DriverProfileComponent implements OnInit {
+export class ClientProfileComponent implements OnInit {
   private readonly auth = inject(AuthService);
-  private readonly driverService = inject(DriverService);
+  private readonly clientService = inject(ClientService);
   private readonly ui = inject(InteractionService);
 
   readonly user = this.auth.user;
-  readonly profile = signal<DriverProfile | null>(null);
+  readonly profile = signal<ClientProfile | null>(null);
   readonly loading = signal(true);
   readonly saving = signal(false);
 
   // Campos editables
-  license = '';
-  passport = '';
-  status = 'available';
+  companyName = '';
+  ruc = '';
+  address = '';
+  typeClient: 'legal' | 'natural' = 'legal';
 
   ngOnInit(): void {
     this.loadProfile();
@@ -399,17 +373,18 @@ export class DriverProfileComponent implements OnInit {
 
   private loadProfile(): void {
     const u = this.user();
-    if (!u?.idDriver) {
+    if (!u?.idClient) {
       this.loading.set(false);
       return;
     }
 
-    this.driverService.getProfile(u.idDriver).subscribe({
-      next: (driver) => {
-        this.profile.set(driver);
-        this.license = driver.license ?? '';
-        this.passport = driver.passport ?? '';
-        this.status = driver.status ?? 'available';
+    this.clientService.getProfile(u.idClient).subscribe({
+      next: (clientProfile) => {
+        this.profile.set(clientProfile);
+        this.companyName = clientProfile.companyName ?? '';
+        this.ruc = clientProfile.ruc ?? '';
+        this.address = clientProfile.address ?? '';
+        this.typeClient = clientProfile.typeClient ?? 'legal';
         this.loading.set(false);
       },
       error: (err) => {
@@ -427,18 +402,19 @@ export class DriverProfileComponent implements OnInit {
 
     const body = {
       userId: u.idUser,
-      license: this.license,
-      passport: this.passport,
-      status: this.status,
+      companyName: this.companyName,
+      ruc: this.ruc,
+      address: this.address,
+      typeClient: this.typeClient,
     };
 
-    const request$ = u.idDriver
-      ? this.driverService.updateProfile(u.idDriver, body)
-      : this.driverService.createProfile(body);
+    const request$ = u.idClient
+      ? this.clientService.updateProfile(u.idClient, body)
+      : this.clientService.createProfile(body);
 
     request$.subscribe({
       next: () => {
-        if (!u.idDriver) {
+        if (!u.idClient) {
           this.auth.refreshSession().subscribe(() => {
             this.ui.hideLoading();
             this.saving.set(false);
@@ -458,15 +434,5 @@ export class DriverProfileComponent implements OnInit {
         this.ui.showToast(getHttpErrorMessage(err), 'error');
       },
     });
-  }
-
-  statusLabel(status: string): string {
-    const map: Record<string, string> = {
-      available: 'Activo',
-      ontrip: 'En viaje',
-      offline: 'Desconectado',
-      inactive: 'Inactivo',
-    };
-    return map[status] ?? status;
   }
 }
