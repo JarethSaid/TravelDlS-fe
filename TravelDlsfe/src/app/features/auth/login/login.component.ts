@@ -134,8 +134,10 @@ export class LoginComponent {
           void this.router.navigate(['/driver/dashboard']);
         } else if (user.role === 'company') {
           void this.router.navigate(['/company/dashboard']);
+        } else if (user.role === 'client') {
+          void this.router.navigate(['/client/dashboard']);
         } else {
-          void this.router.navigate(['/dashboard']);
+          void this.router.navigate(['/login']);
         }
       },
       error: (err) => {
