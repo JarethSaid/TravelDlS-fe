@@ -1,14 +1,14 @@
 import { Component, Input, Output, EventEmitter, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { TruckService } from '../../services/truck.service';
-import { CategoryService } from '../../services/category.service';
-import { DriverService } from '../../services/driver.service';
+import { TruckService } from '../../../platformAdmin/services/truck.service';
+import { CategoryService } from '../../../platformAdmin/services/category.service';
+import { CompanyDriverService } from '../../services/driver.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { InteractionService } from '../../../../shared/service/interaction.service';
 import { getHttpErrorMessage } from '../../../../core/http/http-error.util';
 import { Truck, CategoryStatus } from './trucks-list.component';
-import { Category } from '../../interface/category.interface';
+import { Category } from '../../../platformAdmin/interface/category.interface';
 import { HttpParams } from '@angular/common/http';
 import { forkJoin } from 'rxjs';
 
@@ -214,7 +214,7 @@ export class TruckFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly svc = inject(TruckService);
   private readonly catSvc = inject(CategoryService);
-  private readonly drvSvc = inject(DriverService);
+  private readonly drvSvc = inject(CompanyDriverService);
   private readonly auth = inject(AuthService);
   private readonly ui = inject(InteractionService);
 
@@ -277,7 +277,7 @@ export class TruckFormComponent implements OnInit {
       error: (err) => {
         this.debugInfo.set(`Error HTTP (${err.status}): Usando categorías locales de respaldo para no bloquear la pantalla.`);
         
-        // Respaldo de categorías estándar para permitir la creación de camiones
+        // Respaldo de categorías estándar para permitir la creación de camiones en empresas
         const fallbackCategories = [
           { idCategory: 1, nameCategory: 'Carga Pesada', status: CategoryStatus.ACTIVE, deletedAt: null },
           { idCategory: 2, nameCategory: 'Carga Liviana', status: CategoryStatus.ACTIVE, deletedAt: null },

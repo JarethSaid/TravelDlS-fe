@@ -5,6 +5,7 @@ export interface Truck {
   idCategory: number | null;
   chassis: string;
   plate: string;
+  status?: string;
   deletedAt: string | null;
   createdAt?: string;
   updatedAt?: string;
@@ -30,6 +31,7 @@ export interface CreateTruckDto {
   idCategory?: number | null;
   chassis: string;
   plate: string;
+  status?: string;
 }
 
 export interface UpdateTruckDto {
@@ -38,4 +40,5 @@ export interface UpdateTruckDto {
   idCategory?: number | null;
   chassis?: string;
   plate?: string;
+  status?: string;
 }
