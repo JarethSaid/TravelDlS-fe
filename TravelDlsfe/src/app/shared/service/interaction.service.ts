@@ -56,11 +56,13 @@ export class InteractionService {
   // Procesa el error del backend y lo muestra en el modal
   async mostrarError(err: any) {
     const backendMessage =
-      err?.error?.detail ||
-      err?.error?.message ||
-      err?.error?.title ||
-      err?.message ||
-      'Error desconocido';
+      typeof err === 'string'
+        ? err
+        : err?.error?.detail ||
+          err?.error?.message ||
+          err?.error?.title ||
+          err?.message ||
+          'Error desconocido';
 
     this.showError('Ops!', backendMessage, 'Cerrar');
   }
