@@ -98,9 +98,6 @@ import { ClientFormComponent } from './client-form.component';
                   </td>
                   <td>
                     <div class="acciones-celda">
-                      <button class="btn-accion btn-editar" title="Ver detalle" (click)="openEdit(c)">
-                        <i class="fa-solid fa-pencil"></i>
-                      </button>
                       <button class="btn-accion btn-eliminar" title="Eliminar" (click)="confirmDelete(c)">
                         <i class="fa-solid fa-trash"></i>
                       </button>
@@ -150,7 +147,7 @@ import { ClientFormComponent } from './client-form.component';
 
     @if (showForm()) {
       <app-client-form
-        [client]="editingClient()"
+        [client]="null"
         (saved)="onSaved()"
         (cancelled)="closeForm()"
       />
@@ -171,7 +168,6 @@ export class ClientsListComponent implements OnInit {
   searchTerm = '';
   typeFilter = '';
   showForm = signal(false);
-  editingClient = signal<Client | null>(null);
 
   rangeLabel = computed(() => {
     const t = this.total();
@@ -252,18 +248,11 @@ export class ClientsListComponent implements OnInit {
   }
 
   openCreate(): void {
-    this.editingClient.set(null);
-    this.showForm.set(true);
-  }
-
-  openEdit(c: Client): void {
-    this.editingClient.set(c);
     this.showForm.set(true);
   }
 
   closeForm(): void {
     this.showForm.set(false);
-    this.editingClient.set(null);
   }
 
   onSaved(): void {

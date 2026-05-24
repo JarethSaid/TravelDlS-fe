@@ -49,8 +49,8 @@ import { CategoryFormComponent } from './category-form.component';
                 <tr>
                   <td class="txt-negrita">{{ c.nameCategory }}</td>
                   <td>
-                    <span [class]="c.status === 'active' ? 'badge-estado badge-activo' : 'badge-estado badge-inactivo'">
-                      {{ c.status === 'active' ? 'Activo' : 'Inactivo' }}
+                    <span [class]="c.status === 'activo' ? 'badge-estado badge-activo' : c.status === 'mantenimiento' ? 'badge-estado badge-warning' : 'badge-estado badge-inactivo'">
+                      {{ c.status === 'activo' ? 'Activo' : c.status === 'mantenimiento' ? 'Mantenimiento' : 'Inactivo' }}
                     </span>
                   </td>
                   <td>

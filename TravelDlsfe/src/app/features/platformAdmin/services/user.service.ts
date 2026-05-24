@@ -28,4 +28,8 @@ export class UserService {
   getUnassignedDriverUsers(): Observable<UserOption[]> {
     return this.http.get<UserOption[]>(`${this.base}/api/users/unassigned-driver`);
   }
+
+  getUnassignedClientUsers(): Observable<UserOption[]> {
+    return this.http.get<UserOption[]>(`${this.base}/api/users/unassigned-client`);
+  }
 }

@@ -6,6 +6,7 @@ import {
   Client,
   ClientPaginator,
   CreateClientDto,
+  UpdateClientDto,
 } from '../interface/client.interface';
 
 @Injectable({ providedIn: 'root' })
@@ -33,6 +34,10 @@ export class ClientService {
 
   create(data: CreateClientDto): Observable<Client> {
     return this.http.post<Client>(`${this.base}/api/clients`, data);
+  }
+
+  update(id: number, data: UpdateClientDto): Observable<Client> {
+    return this.http.put<Client>(`${this.base}/api/clients/${id}`, data);
   }
 
   delete(id: number): Observable<{ message: string }> {

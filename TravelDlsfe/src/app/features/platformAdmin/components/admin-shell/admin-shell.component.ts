@@ -383,11 +383,12 @@ export class AdminShellComponent {
   }
 
   readonly navItems: NavItem[] = [
-    { label: 'Dashboard',   icon: 'fa-solid fa-chart-pie',  route: '/admin/dashboard'  },
-    { label: 'Empresas',    icon: 'fa-solid fa-building',   route: '/admin/companies'  },
-    { label: 'Conductores', icon: 'fa-solid fa-id-card',    route: '/admin/drivers'    },
-    { label: 'Clientes',    icon: 'fa-solid fa-users',      route: '/admin/clients'    },
-    { label: 'Usuarios',    icon: 'fa-solid fa-user-plus',  route: '/admin/users'      },
+    { label: 'Dashboard',              icon: 'fa-solid fa-chart-pie',       route: '/admin/dashboard'   },
+    { label: 'Empresas',               icon: 'fa-solid fa-building',        route: '/admin/companies'   },
+    { label: 'Conductores',            icon: 'fa-solid fa-id-card',         route: '/admin/drivers'     },
+    { label: 'Clientes',               icon: 'fa-solid fa-users',           route: '/admin/clients'     },
+    { label: 'Usuarios',               icon: 'fa-solid fa-user-plus',       route: '/admin/users'       },
+    { label: 'Categ. de Camiones',     icon: 'fa-solid fa-tags',            route: '/admin/categories'  },
   ];
 
   logout(): void {

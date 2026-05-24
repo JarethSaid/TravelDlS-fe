@@ -37,8 +37,9 @@ import { getHttpErrorMessage } from '../../../../core/http/http-error.util';
           <div class="campo">
             <label for="statusCat">Estado</label>
             <select id="statusCat" class="input-auth" formControlName="status">
-              <option value="active">Activo</option>
-              <option value="inactive">Inactivo</option>
+              <option value="activo">Activo</option>
+              <option value="inactivo">Inactivo</option>
+              <option value="mantenimiento">Mantenimiento</option>
             </select>
           </div>
 
@@ -78,7 +79,7 @@ export class CategoryFormComponent implements OnInit {
 
   readonly form = this.fb.group({
     nameCategory: ['', [Validators.required, Validators.minLength(2)]],
-    status: ['active', [Validators.required]],
+    status: ['activo', [Validators.required]],
   });
 
   ngOnInit(): void {

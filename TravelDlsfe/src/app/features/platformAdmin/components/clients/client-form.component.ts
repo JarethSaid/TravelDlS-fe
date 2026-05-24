@@ -1,10 +1,17 @@
-import { Component, Input, Output, EventEmitter, OnInit, inject } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ClientService } from '../../services/client.service';
 import { Client } from '../../interface/client.interface';
 import { InteractionService } from '../../../../shared/service/interaction.service';
 import { getHttpErrorMessage } from '../../../../core/http/http-error.util';
+import { UserService } from '../../services/user.service';
+
+interface UserOption {
+  idUser: number;
+  name: string;
+  email: string;
+}
 
 @Component({
   selector: 'app-client-form',
@@ -20,6 +27,38 @@ import { getHttpErrorMessage } from '../../../../core/http/http-error.util';
         <h2 class="modal-titulo">{{ client ? 'Editar Cliente' : 'Nuevo Cliente' }}</h2>
 
         <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+          <!-- Usuario asignado (solo al crear) -->
+          @if (!client) {
+            <div class="campo">
+              <label for="userId">
+                Usuario Cliente <span class="req-mark">*</span>
+              </label>
+
+              @if (loadingUsers()) {
+                <div class="users-loading">
+                  <i class="fa-solid fa-spinner fa-spin"></i> Cargando usuarios…
+                </div>
+              } @else if (users().length === 0) {
+                <div class="users-empty">
+                  <i class="fa-solid fa-circle-exclamation"></i>
+                  No hay usuarios con rol "Cliente" sin asignar. Regístralos primero en la sección Usuarios.
+                </div>
+              } @else {
+                <select id="userId" class="input-auth" formControlName="userId">
+                  <option [ngValue]="null" disabled selected hidden>Seleccionar usuario…</option>
+                  @for (u of users(); track u.idUser) {
+                    <option [value]="u.idUser">{{ u.name }} — {{ u.email }}</option>
+                  }
+                </select>
+              }
+
+              @if (form.controls['userId'].invalid && form.controls['userId'].touched) {
+                <span class="error-text">Debes seleccionar un usuario</span>
+              }
+            </div>
+          }
+
           <div class="campo">
             <label for="companyName">Nombre / Empresa</label>
             <input id="companyName" class="input-auth" type="text" formControlName="companyName" placeholder="Ej: Minera Los Andes S.A." />
@@ -58,9 +97,15 @@ import { getHttpErrorMessage } from '../../../../core/http/http-error.util';
           </div>
 
           <div class="form-actions">
-            <button type="button" class="btn-cancelar-form" (click)="cancelled.emit()">Cancelar</button>
-            <button type="submit" class="btn-enviar" [disabled]="form.invalid || saving">
-              {{ saving ? 'Guardando…' : (client ? 'Actualizar' : 'Crear') }}
+            <button type="button" class="btn-cancelar-form" (click)="cancelled.emit()">
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              class="btn-enviar"
+              [disabled]="form.invalid || saving() || (loadingUsers() && !client) || (!client && users().length === 0)"
+            >
+              {{ saving() ? 'Guardando…' : (client ? 'Actualizar' : 'Crear') }}
             </button>
           </div>
         </form>
@@ -74,30 +119,54 @@ export class ClientFormComponent implements OnInit {
   @Output() saved = new EventEmitter<void>();
   @Output() cancelled = new EventEmitter<void>();
 
-  private readonly fb = inject(FormBuilder);
-  private readonly svc = inject(ClientService);
-  private readonly ui = inject(InteractionService);
+  private readonly fb          = inject(FormBuilder);
+  private readonly svc         = inject(ClientService);
+  private readonly ui          = inject(InteractionService);
+  private readonly userService = inject(UserService);
 
-  saving = false;
+  saving       = signal(false);
+  users        = signal<UserOption[]>([]);
+  loadingUsers = signal(false);
 
   readonly form = this.fb.group({
+    userId:      [null as number | null],
     companyName: ['', [Validators.required, Validators.minLength(2)]],
-    ruc: ['', [Validators.required, Validators.pattern(/^\d{11}$/)]],
-    address: ['', [Validators.required]],
-    typeClient: ['legal' as 'legal' | 'natural', [Validators.required]],
-    photoUrl: [''],
+    ruc:         ['', [Validators.required, Validators.pattern(/^\d{11}$/)]],
+    address:     ['', [Validators.required]],
+    typeClient:  ['legal' as 'legal' | 'natural', [Validators.required]],
+    photoUrl:    [''],
   });
 
   ngOnInit(): void {
     if (this.client) {
+      // Modo edición: parchear valores, userId no es requerido
       this.form.patchValue({
         companyName: this.client.companyName,
-        ruc: this.client.ruc,
-        address: this.client.address,
-        typeClient: this.client.typeClient,
-        photoUrl: this.client.photoUrl ?? '',
+        ruc:         this.client.ruc,
+        address:     this.client.address,
+        typeClient:  this.client.typeClient,
+        photoUrl:    this.client.photoUrl ?? '',
       });
+    } else {
+      // Modo creación: userId requerido, cargar usuarios sin asignar
+      this.form.controls['userId'].setValidators([Validators.required]);
+      this.form.controls['userId'].updateValueAndValidity();
+      this.loadUsers();
     }
+  }
+
+  loadUsers(): void {
+    this.loadingUsers.set(true);
+    this.userService.getUnassignedClientUsers().subscribe({
+      next: (users) => {
+        this.users.set(users);
+        this.loadingUsers.set(false);
+      },
+      error: () => {
+        this.loadingUsers.set(false);
+        this.ui.showToast('No se pudieron cargar los usuarios', 'error');
+      },
+    });
   }
 
   onBackdrop(e: MouseEvent): void {
@@ -107,28 +176,36 @@ export class ClientFormComponent implements OnInit {
   }
 
   onSubmit(): void {
-    if (this.form.invalid || this.saving) {
+    if (this.form.invalid || this.saving()) {
       this.form.markAllAsTouched();
       return;
     }
-    this.saving = true;
+    this.saving.set(true);
     const raw = this.form.getRawValue();
-    const payload = {
+
+    const payload: any = {
       companyName: raw.companyName!,
-      ruc: raw.ruc!,
-      address: raw.address!,
-      typeClient: raw.typeClient as 'legal' | 'natural',
-      photoUrl: raw.photoUrl || null,
+      ruc:         raw.ruc!,
+      address:     raw.address!,
+      typeClient:  raw.typeClient as 'legal' | 'natural',
+      photoUrl:    raw.photoUrl || null,
     };
 
-    // Platform admin can only create (update is for client role)
-    this.svc.create(payload).subscribe({
+    if (!this.client && raw.userId) {
+      payload['userId'] = Number(raw.userId);
+    }
+
+    const request$ = this.client
+      ? this.svc.update(this.client.idClient, payload)
+      : this.svc.create(payload);
+
+    request$.subscribe({
       next: () => {
-        this.saving = false;
+        this.saving.set(false);
         this.saved.emit();
       },
       error: (err) => {
-        this.saving = false;
+        this.saving.set(false);
         this.ui.showToast(getHttpErrorMessage(err), 'error');
       },
     });

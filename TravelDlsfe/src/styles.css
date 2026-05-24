@@ -737,6 +737,11 @@ body {
   color: #dc2626;
 }
 
+.badge-warning {
+  background: #fef3c7;
+  color: #d97706;
+}
+
 /* Badges de tipo de cliente */
 .badge-tipo {
   font-size: 11px;

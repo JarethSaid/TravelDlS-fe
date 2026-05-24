@@ -27,4 +27,13 @@ export interface CreateClientDto {
   address: string;
   typeClient: 'legal' | 'natural';
   photoUrl?: string | null;
+  userId?: number;
+}
+
+export interface UpdateClientDto {
+  companyName?: string;
+  ruc?: string;
+  address?: string;
+  typeClient?: 'legal' | 'natural';
+  photoUrl?: string | null;
 }
