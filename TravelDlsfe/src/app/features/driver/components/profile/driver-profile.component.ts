@@ -5,6 +5,7 @@ import { DriverService } from '../../services/driver.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { InteractionService } from '../../../../shared/service/interaction.service';
 import { getHttpErrorMessage } from '../../../../core/http/http-error.util';
+import { stripLicenseFromDisplayName } from '../../../../shared/utils/driver-display.util';
 
 interface DriverProfile {
   idDriver: number;
@@ -36,7 +37,7 @@ interface DriverProfile {
             </button>
           </div>
           <div class="header-info">
-            <h1>{{ profile()?.user?.name ?? user()?.name ?? 'Conductor' }}</h1>
+            <h1>{{ displayUserName() }}</h1>
             <p class="header-email">{{ profile()?.user?.email ?? user()?.email ?? '' }}</p>
             <span class="status-badge" [class]="'status-badge status-' + (profile()?.status ?? 'available')">
               {{ statusLabel(profile()?.status ?? 'available') }}
@@ -59,7 +60,7 @@ interface DriverProfile {
             <!-- Nombre completo (full width) -->
             <div class="field full-width">
               <label>Nombre completo</label>
-              <input type="text" [value]="profile()?.user?.name ?? user()?.name ?? ''" readonly />
+              <input type="text" [value]="displayUserName()" readonly />
             </div>
 
             <!-- Licencia | Pasaporte -->
@@ -432,6 +433,12 @@ export class DriverProfileComponent implements OnInit {
         this.ui.showToast(getHttpErrorMessage(err), 'error');
       },
     });
+  }
+
+  displayUserName(): string {
+    const raw = this.profile()?.user?.name ?? this.user()?.name ?? 'Conductor';
+    if (raw === 'Conductor') return raw;
+    return stripLicenseFromDisplayName(raw, this.profile()?.license);
   }
 
   statusLabel(status: string): string {
