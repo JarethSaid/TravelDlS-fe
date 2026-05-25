@@ -1,20 +1,27 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 
 export const roleGuard = (allowedRole: string): CanActivateFn => {
-  return () => {
+  return async () => {
     const auth = inject(AuthService);
     const router = inject(Router);
-    
-    const user = auth.user();
-    
-    if (user && user.role === allowedRole) {
+    const expected = allowedRole.toLowerCase();
+
+    if (!auth.user()) {
+      try {
+        await firstValueFrom(auth.refreshSession());
+      } catch {
+        /* sin sesión */
+      }
+    }
+
+    const role = auth.user()?.role?.toLowerCase();
+    if (role === expected) {
       return true;
     }
-    
-    // Si no tiene el rol, redirigir al login
-    router.navigate(['/login']);
-    return false;
+
+    return router.createUrlTree(['/login']);
   };
 };

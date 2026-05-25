@@ -4,6 +4,7 @@ import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/rou
 import { AuthService } from '../../../../core/services/auth.service';
 import { InteractionService } from '../../../../shared/service/interaction.service';
 import { getHttpErrorMessage } from '../../../../core/http/http-error.util';
+import { stripLicenseFromDisplayName } from '../../../../shared/utils/driver-display.util';
 
 interface NavItem {
   label: string;
@@ -68,7 +69,7 @@ interface NavItem {
                 <i class="fa-solid fa-circle-user"></i>
               </div>
               <div class="user-details">
-                <span class="user-name">{{ user()!.name }}</span>
+                <span class="user-name">{{ displayUserName() }}</span>
                 <span class="user-email">{{ user()!.email }}</span>
               </div>
             </div>
@@ -377,6 +378,11 @@ export class DriverShellComponent {
   readonly user = this.auth.user;
   readonly isSidebarCollapsed = signal(false);
   readonly isMobileMenuOpen = signal(false);
+
+  displayUserName(): string {
+    const name = this.user()?.name;
+    return name ? stripLicenseFromDisplayName(name) : '';
+  }
 
   toggleSidebar() {
     this.isSidebarCollapsed.update(v => !v);
