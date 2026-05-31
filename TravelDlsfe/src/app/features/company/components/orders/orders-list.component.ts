@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpParams } from '@angular/common/http';
 import { OrderService } from '../../services/order.service';
+import { CompanyDriverService, Driver } from '../../services/driver.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { InteractionService } from '../../../../shared/service/interaction.service';
 import { getHttpErrorMessage } from '../../../../core/http/http-error.util';
@@ -15,6 +16,8 @@ interface Order {
   deletedAt: string | null;
   createdAt: string;
   client?: { companyName: string; ruc: string };
+  details?: any[];
+  selectedDriverId?: number;
 }
 
 @Component({
@@ -62,14 +65,15 @@ interface Order {
                 <th>Cliente</th>
                 <th>Estado</th>
                 <th>Fecha</th>
+                <th>Conductor</th>
               </tr>
             </thead>
             <tbody>
               @if (loading()) {
-                <tr><td colspan="4" class="tabla-vacia"><i class="fa-solid fa-spinner fa-spin"></i> Cargando…</td></tr>
+                <tr><td colspan="5" class="tabla-vacia"><i class="fa-solid fa-spinner fa-spin"></i> Cargando…</td></tr>
               } @else if (orders().length === 0) {
                 <tr>
-                  <td colspan="4">
+                  <td colspan="5">
                     <div class="empty-state-company">
                       <div class="empty-state-icon"><i class="fa-solid fa-box"></i></div>
                       <p class="empty-state-text">No hay pedidos registrados</p>
@@ -83,6 +87,41 @@ interface Order {
                     <td>{{ o.client?.companyName ?? ('Cliente #' + o.idClient) }}</td>
                     <td><span [class]="statusBadgeClass(o.status)">{{ statusLabel(o.status) }}</span></td>
                     <td>{{ o.createdAt | date:'dd/MM/yyyy' }}</td>
+                    <td>
+                      @if (o.details && o.details[0] && o.details[0].idDriver) {
+                        <span>{{ o.details[0]?.driver?.user?.name || o.details[0]?.driver?.name || getDriverName(o.details[0].idDriver) }}</span>
+                      } @else if (o.details && o.details[0]) {
+                        <div style="display:flex; gap:8px; align-items:center;">
+                          <div style="position: relative; display: flex; align-items: center; min-width: 220px;">
+                            <i class="fa-solid fa-user-tie" style="position: absolute; left: 14px; color: #64748b; font-size: 14px; pointer-events: none;"></i>
+                            <select
+                              [(ngModel)]="o.selectedDriverId"
+                              style="width: 100%; border-radius: 12px; border: 1.5px solid #cbd5e1; padding: 10px 14px 10px 38px; font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; box-sizing: border-box; background-color: #f8fafc; color: #1e293b; appearance: none; -webkit-appearance: none; background-image: url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 20 20%22%3E%3Cpath stroke=%22%236b7280%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-width=%221.5%22 d=%22M6 8l4 4 4-4%22/%3E%3C/svg%3E'); background-position: right 12px center; background-repeat: no-repeat; background-size: 18px; transition: all 0.2s;"
+                              onfocus="this.style.borderColor='#3d39af'; this.style.boxShadow='0 0 0 3px rgba(61, 57, 175, 0.15)'"
+                              onblur="this.style.borderColor='#cbd5e1'; this.style.boxShadow='none'"
+                            >
+                              <option [ngValue]="undefined" disabled selected>Seleccione Conductor</option>
+                              @for (d of drivers(); track d.idDriver) {
+                                <option [ngValue]="d.idDriver">{{ d.user?.name || d.name || 'Sin nombre (' + d.license + ')' }}</option>
+                              }
+                            </select>
+                          </div>
+                          <button
+                            [disabled]="!o.selectedDriverId"
+                            (click)="assignDriver(o.idOrder, o.selectedDriverId)"
+                            style="padding: 10px 16px; border-radius: 12px; font-weight: 600; font-size: 13px; background: #3d39af; color: white; border: none; display: flex; align-items: center; gap: 6px; transition: all 0.2s;"
+                            onmouseover="if(!this.disabled){this.style.backgroundColor='#2d299f'; this.style.boxShadow='0 4px 12px rgba(61, 57, 175, 0.2)'}"
+                            onmouseout="if(!this.disabled){this.style.backgroundColor='#3d39af'; this.style.boxShadow='none'}"
+                            [style.opacity]="!o.selectedDriverId ? '0.5' : '1'"
+                            [style.cursor]="!o.selectedDriverId ? 'not-allowed' : 'pointer'"
+                          >
+                            <i class="fa-solid fa-check"></i> Asignar
+                          </button>
+                        </div>
+                      } @else {
+                        <span style="color:#6c757d; font-style:italic;">Sin detalles</span>
+                      }
+                    </td>
                   </tr>
                 }
               }
@@ -108,10 +147,12 @@ interface Order {
 })
 export class OrdersListComponent implements OnInit {
   private readonly orderService = inject(OrderService);
+  private readonly driverService = inject(CompanyDriverService);
   private readonly auth = inject(AuthService);
   private readonly ui = inject(InteractionService);
 
   orders = signal<Order[]>([]);
+  drivers = signal<Driver[]>([]);
   loading = signal(true);
   total = signal(0);
   currentPage = signal(1);
@@ -125,6 +166,18 @@ export class OrdersListComponent implements OnInit {
   ngOnInit(): void {
     this.companyId = this.auth.user()?.idCompany ?? null;
     this.load();
+    if (this.companyId) {
+      this.loadDrivers();
+    }
+  }
+
+  loadDrivers(): void {
+    let p = new HttpParams().set('perPage', 100);
+    if (this.companyId) p = p.set('idCompany', this.companyId);
+    this.driverService.getDrivers(p).subscribe({
+      next: (res) => this.drivers.set(res.data || []),
+      error: (err) => console.error('Error loading drivers', err)
+    });
   }
 
   load(): void {
@@ -192,5 +245,26 @@ export class OrdersListComponent implements OnInit {
       cancelado:  'badge-resort badge-cancelada',
     };
     return map[status] ?? 'badge-resort badge-pendiente';
+  }
+
+  assignDriver(idOrder: number, idDriver?: number): void {
+    if (!idDriver) return;
+    this.orderService.assignDriver(idOrder, idDriver).subscribe({
+      next: (res) => {
+        this.ui.showToast('Conductor asignado correctamente', 'success');
+        this.load();
+      },
+      error: (err) => {
+        this.ui.showToast(getHttpErrorMessage(err), 'error');
+      }
+    });
+  }
+
+  getDriverName(idDriver: number): string {
+    const drv = this.drivers().find(d => d.idDriver === idDriver);
+    if (drv) {
+      return drv.user?.name || drv.name || ('Conductor #' + idDriver);
+    }
+    return 'Conductor asignado';
   }
 }

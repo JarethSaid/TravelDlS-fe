@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
+import { FormsModule } from '@angular/forms';
 import { CategoryService } from '../../services/category.service';
 import { Category } from '../../interface/category.interface';
 import { InteractionService } from '../../../../shared/service/interaction.service';
@@ -10,13 +11,13 @@ import { CategoryFormComponent } from './category-form.component';
 @Component({
   selector: 'app-categories-list',
   standalone: true,
-  imports: [CommonModule, CategoryFormComponent],
+  imports: [CommonModule, FormsModule, CategoryFormComponent],
   template: `
     <div>
       <div class="page-header">
         <div>
           <h1 class="page-title">Categorías</h1>
-          <p class="page-sub">{{ total() }} categorías registradas</p>
+          <p class="page-sub">{{ totalItems() }} categorías registradas</p>
         </div>
         <button class="btn-nuevo" (click)="openCreate()">
           <i class="fa-solid fa-plus"></i> Nueva Categoría
@@ -70,12 +71,24 @@ import { CategoryFormComponent } from './category-form.component';
         </table>
       </div>
 
-      @if (totalPages() > 1) {
+      @if (totalPages() > 1 || totalItems() > 0) {
+        <div class="filters-bar" style="justify-content: flex-end; padding-top: 16px;">
+          <div class="per-page" style="display: flex; align-items: center; gap: 8px;">
+            <label style="font-size: 14px; color: #64748b;">Mostrar</label>
+            <select [ngModel]="pageSize()" (ngModelChange)="onPageSizeChange($event)" style="padding: 4px 8px; border-radius: 4px; border: 1px solid #e2e8f0;">
+              <option [ngValue]="5">5</option>
+              <option [ngValue]="10">10</option>
+              <option [ngValue]="15">15</option>
+              <option [ngValue]="25">25</option>
+            </select>
+          </div>
+        </div>
+
         <div class="paginacion-estandar">
           <button class="btn-pag" [disabled]="currentPage() <= 1" (click)="goPage(currentPage() - 1)">
             <i class="fa-solid fa-chevron-left"></i>
           </button>
-          <span>Página {{ currentPage() }} de {{ totalPages() }}</span>
+          <span>Página {{ currentPage() }} de {{ totalPages() }} ({{ totalItems() }} items)</span>
           <button class="btn-pag" [disabled]="currentPage() >= totalPages()" (click)="goPage(currentPage() + 1)">
             <i class="fa-solid fa-chevron-right"></i>
           </button>
@@ -99,8 +112,9 @@ export class CategoriesListComponent implements OnInit {
 
   categories = signal<Category[]>([]);
   loading = signal(true);
-  total = signal(0);
+  totalItems = signal(0);
   currentPage = signal(1);
+  pageSize = signal(15);
   totalPages = signal(1);
   showForm = signal(false);
   editingCategory = signal<Category | null>(null);
@@ -111,10 +125,10 @@ export class CategoriesListComponent implements OnInit {
 
   load(): void {
     this.loading.set(true);
-    this.svc.list({ page: this.currentPage(), perPage: 15 }).subscribe({
+    this.svc.getCategories(this.currentPage(), this.pageSize()).subscribe({
       next: (res) => {
         this.categories.set(res.data);
-        this.total.set(res.meta.total);
+        this.totalItems.set(res.meta.total);
         this.totalPages.set(res.meta.lastPage);
         this.loading.set(false);
       },
@@ -127,6 +141,12 @@ export class CategoriesListComponent implements OnInit {
 
   goPage(p: number): void {
     this.currentPage.set(p);
+    this.load();
+  }
+
+  onPageSizeChange(size: number): void {
+    this.pageSize.set(size);
+    this.currentPage.set(1);
     this.load();
   }
 

@@ -260,7 +260,7 @@ export class TruckFormComponent implements OnInit {
 
   loadCategories(): void {
     this.debugInfo.set('Solicitando categorías...');
-    this.catSvc.list({ page: 1, perPage: 100 }).subscribe({
+    this.catSvc.getCategories(1, 100).subscribe({
       next: (res: any) => {
         const categoriesList = Array.isArray(res) ? res : (res?.data || []);
         if (categoriesList.length === 0) {
@@ -274,7 +274,7 @@ export class TruckFormComponent implements OnInit {
         });
         this.categories.set(activeOnly);
       },
-      error: (err) => {
+      error: (err: any) => {
         this.debugInfo.set(`Error HTTP (${err.status}): Usando categorías locales de respaldo para no bloquear la pantalla.`);
         
         // Respaldo de categorías estándar para permitir la creación de camiones
@@ -318,7 +318,7 @@ export class TruckFormComponent implements OnInit {
 
         this.drivers.set(availableDrivers);
       },
-      error: (err) => {
+      error: (err: any) => {
         this.ui.showToast('Error al cargar conductores', 'error');
       }
     });
@@ -364,7 +364,7 @@ export class TruckFormComponent implements OnInit {
         this.isSaving.set(false);
         this.saved.emit();
       },
-      error: (err) => {
+      error: (err: any) => {
         this.isSaving.set(false);
         this.ui.showToast(getHttpErrorMessage(err), 'error');
       },

@@ -13,4 +13,8 @@ export class OrderService {
   getOrders(params?: HttpParams): Observable<any> {
     return this.http.get<any>(`${this.base}/api/orders`, { params });
   }
+
+  assignDriver(idOrder: number, idDriver: number): Observable<any> {
+    return this.http.patch<any>(`${this.base}/api/orders/${idOrder}/assign-driver`, { idDriver });
+  }
 }
