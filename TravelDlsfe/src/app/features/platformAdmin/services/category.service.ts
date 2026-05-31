@@ -14,10 +14,10 @@ export class CategoryService {
   private readonly http = inject(HttpClient);
   private readonly base = inject(API_BASE_URL);
 
-  list(params: { page?: number; perPage?: number }): Observable<CategoryPaginator> {
+  getCategories(page: number, size: number): Observable<CategoryPaginator> {
     const p = new HttpParams()
-      .set('page', params.page ?? 1)
-      .set('perPage', params.perPage ?? 10);
+      .set('page', page)
+      .set('perPage', size);
     return this.http.get<CategoryPaginator>(`${this.base}/api/categories`, { params: p });
   }
 
