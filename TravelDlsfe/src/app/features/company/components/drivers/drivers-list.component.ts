@@ -691,9 +691,7 @@ export class DriversListComponent implements OnInit {
   }
 
   private buildListParams(): HttpParams {
-    let p = new HttpParams()
-      .set('page', this.currentPage())
-      .set('perPage', String(this.perPage));
+    let p = new HttpParams().set('page', this.currentPage()).set('perPage', String(this.perPage));
     if (this.searchTerm.trim()) p = p.set('search', this.searchTerm.trim());
     if (this.statusFilter) p = p.set('status', this.statusFilter);
     if (this.companyId) p = p.set('idCompany', this.companyId);
@@ -815,14 +813,7 @@ export class DriversListComponent implements OnInit {
 
   /** Nombre único para tabla users (name tiene índice UNIQUE global). */
   private buildAccountUserName(displayName: string, license: string): string {
-    const base = displayName.trim();
-    const lic = license.trim();
-    if (!lic) return base;
-    const suffix = ` (${lic})`;
-    if (base.endsWith(suffix) || base.includes(`(${lic})`)) {
-      return base;
-    }
-    return `${base}${suffix}`;
+    return displayName.trim();
   }
 
   private registerAndLinkDriver(pd: UnassignedDriver): void {
