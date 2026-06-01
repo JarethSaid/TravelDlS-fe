@@ -32,7 +32,12 @@ interface Driver {
           <p class="page-sub">{{ total() }} conductores registrados</p>
         </div>
         <div class="header-actions">
-          <button class="btn-refresh" [class.spinning]="loading()" (click)="refresh()" title="Actualizar lista">
+          <button
+            class="btn-refresh"
+            [class.spinning]="loading()"
+            (click)="refresh()"
+            title="Actualizar lista"
+          >
             <i class="fa-solid fa-rotate-right"></i>
           </button>
           <button class="btn-nuevo" (click)="showLinkForm.set(true)">
@@ -104,10 +109,14 @@ interface Driver {
                       </div>
                       <div>
                         <span class="txt-negrita">
-                          {{ d.user?.name ?? ('Conductor #' + d.idDriver) }}
+                          {{
+                            d.user?.name
+                              ? cleanDriverName(d.user?.name)
+                              : 'Conductor #' + d.idDriver
+                          }}
                         </span>
                         @if (d.user?.email) {
-                          <br><span class="txt-sub">{{ d.user!.email }}</span>
+                          <br /><span class="txt-sub">{{ d.user!.email }}</span>
                         }
                       </div>
                     </div>
@@ -131,10 +140,19 @@ interface Driver {
       <div class="paginacion-estandar">
         <span class="pag-rango">{{ rangeLabel() }}</span>
         <div class="pag-controles">
-          <button class="btn-pag" [disabled]="currentPage() <= 1 || loading()" (click)="goPage(1)" title="Primera página">
+          <button
+            class="btn-pag"
+            [disabled]="currentPage() <= 1 || loading()"
+            (click)="goPage(1)"
+            title="Primera página"
+          >
             <i class="fa-solid fa-angles-left"></i>
           </button>
-          <button class="btn-pag" [disabled]="currentPage() <= 1 || loading()" (click)="goPage(currentPage() - 1)">
+          <button
+            class="btn-pag"
+            [disabled]="currentPage() <= 1 || loading()"
+            (click)="goPage(currentPage() - 1)"
+          >
             <i class="fa-solid fa-chevron-left"></i>
           </button>
           <div class="pag-numeros">
@@ -153,20 +171,26 @@ interface Driver {
               }
             }
           </div>
-          <button class="btn-pag" [disabled]="currentPage() >= totalPages() || loading()" (click)="goPage(currentPage() + 1)">
+          <button
+            class="btn-pag"
+            [disabled]="currentPage() >= totalPages() || loading()"
+            (click)="goPage(currentPage() + 1)"
+          >
             <i class="fa-solid fa-chevron-right"></i>
           </button>
-          <button class="btn-pag" [disabled]="currentPage() >= totalPages() || loading()" (click)="goPage(totalPages())" title="Última página">
+          <button
+            class="btn-pag"
+            [disabled]="currentPage() >= totalPages() || loading()"
+            (click)="goPage(totalPages())"
+            title="Última página"
+          >
             <i class="fa-solid fa-angles-right"></i>
           </button>
         </div>
       </div>
 
       @if (showLinkForm()) {
-        <app-driver-link-form
-          (saved)="onLinkSaved()"
-          (cancelled)="showLinkForm.set(false)"
-        />
+        <app-driver-link-form (saved)="onLinkSaved()" (cancelled)="showLinkForm.set(false)" />
       }
     </div>
   `,
@@ -221,9 +245,7 @@ export class DriversListComponent implements OnInit {
 
   load(): void {
     this.loading.set(true);
-    let p = new HttpParams()
-      .set('page', this.currentPage())
-      .set('perPage', this.perPage);
+    let p = new HttpParams().set('page', this.currentPage()).set('perPage', this.perPage);
     if (this.searchTerm) p = p.set('search', this.searchTerm);
     if (this.statusFilter) p = p.set('status', this.statusFilter);
 
@@ -272,9 +294,9 @@ export class DriversListComponent implements OnInit {
   statusLabel(status: string): string {
     const map: Record<string, string> = {
       available: 'Disponible',
-      ontrip:    'En viaje',
-      offline:   'Desconectado',
-      inactive:  'Inactivo',
+      ontrip: 'En viaje',
+      offline: 'Desconectado',
+      inactive: 'Inactivo',
     };
     return map[status] ?? status;
   }
@@ -282,10 +304,15 @@ export class DriversListComponent implements OnInit {
   statusBadgeClass(status: string): string {
     const map: Record<string, string> = {
       available: 'badge-status badge-available',
-      ontrip:    'badge-status badge-ontrip',
-      offline:   'badge-status badge-offline',
-      inactive:  'badge-status badge-inactive',
+      ontrip: 'badge-status badge-ontrip',
+      offline: 'badge-status badge-offline',
+      inactive: 'badge-status badge-inactive',
     };
     return map[status] ?? 'badge-status badge-offline';
+  }
+
+  cleanDriverName(name: string | undefined | null): string {
+    if (!name) return '';
+    return name.replace(/\s*\(.*?\)\s*$/, '').trim();
   }
 }

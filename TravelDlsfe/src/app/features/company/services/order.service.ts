@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { API_BASE_URL } from '../../../core/api-base-url';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class OrderService {
   private readonly http = inject(HttpClient);
@@ -16,5 +16,9 @@ export class OrderService {
 
   assignDriver(idOrder: number, idDriver: number): Observable<any> {
     return this.http.patch<any>(`${this.base}/api/orders/${idOrder}/assign-driver`, { idDriver });
+  }
+
+  assignPrice(idOrder: number, amount: number): Observable<any> {
+    return this.http.patch<any>(`${this.base}/api/orders/${idOrder}/assign-price`, { amount });
   }
 }
