@@ -300,18 +300,37 @@ interface Order {
                           </p>
                         }
 
-                        <div style="display: flex; gap: 12px; margin-top: 6px;">
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px;">
                           <span
-                            style="font-size: 12px; background: #f1f5f9; padding: 2px 8px; border-radius: 6px; color: #64748b;"
+                            style="font-size: 12px; background: #f1f5f9; padding: 2px 8px; border-radius: 6px; color: #64748b; font-weight: 500;"
                           >
+                            <i class="fa-solid fa-cubes" style="margin-right: 4px; font-size: 10px; color: #94a3b8;"></i>
                             Cant: {{ det.quantity ?? 1 }}
                           </span>
                           <span
-                            style="font-size: 12px; background: #f1f5f9; padding: 2px 8px; border-radius: 6px; color: #64748b;"
+                            style="font-size: 12px; background: #f1f5f9; padding: 2px 8px; border-radius: 6px; color: #64748b; font-weight: 500;"
                           >
+                            <i class="fa-solid fa-weight-hanging" style="margin-right: 4px; font-size: 10px; color: #94a3b8;"></i>
                             Peso: {{ det.unitWeight ?? 'N/A' }}
                           </span>
+                          @if (det.typePackaging) {
+                            <span
+                              style="font-size: 12px; background: #f1f5f9; padding: 2px 8px; border-radius: 6px; color: #64748b; font-weight: 500;"
+                            >
+                              <i class="fa-solid fa-box" style="margin-right: 4px; font-size: 10px; color: #94a3b8;"></i>
+                              {{ det.typePackaging }}
+                            </span>
+                          }
                         </div>
+
+                        @if (det.deliveryAddress) {
+                          <p
+                            style="margin: 6px 0 0 0; font-size: 12px; color: #94a3b8; display: flex; align-items: center; gap: 5px;"
+                          >
+                            <i class="fa-solid fa-location-dot" style="font-size: 11px; color: #3d39af;"></i>
+                            {{ det.deliveryAddress }}
+                          </p>
+                        }
                       </div>
 
                       <div style="text-align: right;">
