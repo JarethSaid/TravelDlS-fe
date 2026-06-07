@@ -7,6 +7,8 @@ import { InteractionService } from '../../../../shared/service/interaction.servi
 import { ClientOrder, OrderPaginator, Company, OrderDetailDraft, PACKAGING_TYPES } from '../../interface/client.interface';
 import { forkJoin } from 'rxjs';
 
+type StatusKey = 'pendiente' | 'completada' | 'cancelada' | 'en_proceso' | 'confirmado' | 'completado';
+
 @Component({
   selector: 'app-client-orders',
   standalone: true,
@@ -211,6 +213,7 @@ import { forkJoin } from 'rxjs';
                 <thead>
                   <tr>
                     <th># Orden</th>
+                    <th>Acciones</th>
                     <th>Empresa</th>
                     <th>Estado</th>
                     <th>Fecha creación</th>
@@ -221,6 +224,12 @@ import { forkJoin } from 'rxjs';
                   @for (order of filteredOrders(); track order.idOrder) {
                     <tr>
                       <td class="order-id">#{{ order.idOrder }}</td>
+                      <td>
+                        <button class="btn-view-details" (click)="viewOrderDetails(order)">
+                          <i class="fa-regular fa-eye"></i>
+                          <span>Ver detalles</span>
+                        </button>
+                      </td>
                       <td>{{ order.company?.businessName ?? 'Sin asignar' }}</td>
                       <td>
                         <span class="status-chip" [class]="'status-chip status-' + order.status">
@@ -251,6 +260,105 @@ import { forkJoin } from 'rxjs';
             }
           </div>
         }
+
+        <!-- ═══════════ ORDER DETAIL MODAL ═══════════ -->
+        @if (showDetailModal() && selectedOrderDetail()) {
+          <div class="custom-modal-overlay" (click)="closeDetailModal()"></div>
+          <div class="custom-modal custom-modal--detail">
+            <!-- Header -->
+            <div class="detail-modal-header">
+              <div>
+                <h2 class="detail-modal-title">Detalles del Pedido #{{ selectedOrderDetail()!.idOrder }}</h2>
+                <p class="detail-modal-date">
+                  Registrado el {{ selectedOrderDetail()!.createdAt | date:'dd/MM/yyyy' }} a las {{ selectedOrderDetail()!.createdAt | date:'hh:mm a' }}
+                </p>
+              </div>
+              <button class="btn-close-modal" (click)="closeDetailModal()">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+
+            <!-- Body -->
+            <div class="detail-modal-body">
+              <!-- Company Info -->
+              <div class="detail-section">
+                <h3 class="detail-section-label">INFORMACIÓN DE LA EMPRESA</h3>
+                <div class="detail-info-card">
+                  <p class="detail-info-name">
+                    {{ selectedOrderDetail()!.company?.businessName ?? 'Empresa no asignada' }}
+                  </p>
+                  <p class="detail-info-sub">
+                    <strong>Estado actual:</strong>
+                    <span class="status-chip" [class]="'status-chip status-' + selectedOrderDetail()!.status" style="margin-left: 6px;">
+                      {{ statusLabel(selectedOrderDetail()!.status) }}
+                    </span>
+                  </p>
+                </div>
+              </div>
+
+              <!-- Order Items -->
+              <div class="detail-section">
+                <h3 class="detail-section-label">ITEMS DEL PEDIDO</h3>
+                <div class="detail-items-list">
+                  @if (selectedOrderDetail()!.details && selectedOrderDetail()!.details!.length > 0) {
+                    @for (det of selectedOrderDetail()!.details; track $index) {
+                      <div class="detail-item-card">
+                        <div class="detail-item-left">
+                          <p class="detail-item-title">
+                            {{ det.cargoDescription || 'Servicio de Transporte' }}
+                          </p>
+                          <div class="detail-item-tags">
+                            <span class="detail-tag">
+                              <i class="fa-solid fa-cubes"></i> Cant: {{ det.amount ?? 1 }}
+                            </span>
+                            <span class="detail-tag">
+                              <i class="fa-solid fa-weight-hanging"></i> Peso: {{ det.unitWeight ?? 'N/A' }}
+                            </span>
+                            <span class="detail-tag">
+                              <i class="fa-solid fa-box"></i> {{ getPackagingLabel(det.typePackaging) }}
+                            </span>
+                          </div>
+                          @if (det.deliveryAddress) {
+                            <p class="detail-item-address">
+                              <i class="fa-solid fa-location-dot"></i> {{ det.deliveryAddress }}
+                            </p>
+                          }
+                        </div>
+                        <div class="detail-item-right">
+                          @if (det.amount && det.amount > 0) {
+                            <p class="detail-item-price">C$ {{ det.amount | number:'1.2-2' }}</p>
+                          } @else {
+                            <p class="detail-item-price detail-item-price--pending">Sin precio</p>
+                          }
+                        </div>
+                      </div>
+                    }
+
+                    <!-- Total -->
+                    @if (getOrderTotal(selectedOrderDetail()!) > 0) {
+                      <div class="detail-total-bar">
+                        <span class="detail-total-label">Total estimado</span>
+                        <span class="detail-total-value">C$ {{ getOrderTotal(selectedOrderDetail()!) | number:'1.2-2' }}</span>
+                      </div>
+                    }
+                  } @else {
+                    <p class="detail-no-items">
+                      <i class="fa-solid fa-inbox"></i>
+                      Este pedido no cuenta con detalles de carga.
+                    </p>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="detail-modal-footer">
+              <button class="btn-confirm" (click)="closeDetailModal()">
+                Entendido
+              </button>
+            </div>
+          </div>
+        }
     </div>
   `,
   styleUrl: './client-orders.component.css'
@@ -259,6 +367,10 @@ export class ClientOrdersComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly clientService = inject(ClientService);
   private readonly ui = inject(InteractionService);
+
+  // Detail modal state
+  readonly showDetailModal = signal(false);
+  readonly selectedOrderDetail = signal<ClientOrder | null>(null);
 
   readonly loading = signal(true);
   readonly allOrders = signal<ClientOrder[]>([]);
@@ -310,8 +422,34 @@ export class ClientOrdersComponent implements OnInit {
   rangeStart(): number { const m = this.meta(); return m ? (m.currentPage - 1) * m.perPage + 1 : 0; }
   rangeEnd(): number { const m = this.meta(); return m ? Math.min(m.currentPage * m.perPage, m.total) : 0; }
   statusLabel(status: string): string {
-    const map: Record<string, string> = { pendiente: 'Pendiente', completada: 'Completada', cancelada: 'Cancelada', en_proceso: 'En proceso' };
+    const map: Record<string, string> = { pendiente: 'Pendiente', completada: 'Completada', cancelada: 'Cancelada', en_proceso: 'En proceso', confirmado: 'Confirmado', completado: 'Completado' };
     return map[status] ?? status;
+  }
+
+  /* ── Detail modal ── */
+  viewOrderDetails(order: ClientOrder): void {
+    // Fetch fresh data from backend to get the latest price/details
+    this.clientService.getOrderById(order.idOrder).subscribe({
+      next: (freshOrder) => {
+        this.selectedOrderDetail.set(freshOrder);
+        this.showDetailModal.set(true);
+      },
+      error: () => {
+        // Fallback to cached data if request fails
+        this.selectedOrderDetail.set(order);
+        this.showDetailModal.set(true);
+      },
+    });
+  }
+
+  closeDetailModal(): void {
+    this.showDetailModal.set(false);
+    this.selectedOrderDetail.set(null);
+  }
+
+  getOrderTotal(order: ClientOrder): number {
+    if (!order.details || order.details.length === 0) return 0;
+    return order.details.reduce((sum, d) => sum + (d.amount ?? 0), 0);
   }
 
   private loadCompanies(search?: string): void {
