@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpParams } from '@angular/common/http';
@@ -36,8 +36,8 @@ interface Order {
       </div>
 
       <div class="company-content-card">
-        <div class="company-toolbar">
-          <div class="company-search-box">
+        <div class="company-toolbar" style="margin-bottom: 20px;">
+          <div class="company-search-box" style="flex: 1; max-width: 700px;">
             <i class="fa-solid fa-magnifying-glass company-search-icon"></i>
             <input
               class="company-search-input"
@@ -55,6 +55,15 @@ interface Order {
             <option value="completado">Completado</option>
             <option value="cancelado">Cancelado</option>
           </select>
+          <div class="per-page-control">
+            <label class="per-page-label">Por página:</label>
+            <select class="filter-select" [(ngModel)]="perPage" (ngModelChange)="onPerPageChange()">
+              <option [value]="5">5</option>
+              <option [value]="10">10</option>
+              <option [value]="25">25</option>
+              <option [value]="50">50</option>
+            </select>
+          </div>
         </div>
 
         <div class="tabla-contenedor" style="border-radius:0; border:none; box-shadow:none;">
@@ -157,34 +166,70 @@ interface Order {
                       }
                     </td>
 
-                    <td>
-                      <div style="display: flex; flex-direction: column; gap: 8px;">
-                        <div style="display: flex; gap: 6px; align-items: center;">
-                          <input
-                            type="number"
-                            min="0"
-                            [(ngModel)]="o.customRate"
-                            placeholder="Tarifa C$"
-                            style="width: 80px; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1;"
-                          />
+                    <td style="min-width: 220px;">
+                      <div
+                        style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; transition: all 0.2s;"
+                        onmouseover="this.style.borderColor='#cbd5e1'; this.style.boxShadow='0 4px 6px -1px rgba(0, 0, 0, 0.05)'"
+                        onmouseout="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'"
+                      >
+                        <!-- Fila de Cálculo -->
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                          <div style="position: relative; flex: 1;">
+                            <span
+                              style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 12px; font-weight: 600;"
+                              >C$</span
+                            >
+                            <input
+                              type="number"
+                              min="0"
+                              [(ngModel)]="o.customRate"
+                              placeholder="Tarifa por peso"
+                              style="width: 100%; padding: 8px 8px 8px 30px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-family: inherit; font-size: 13px; font-weight: 500; color: #334155; outline: none; transition: border-color 0.2s; box-sizing: border-box;"
+                              onfocus="this.style.borderColor='#3d39af'"
+                              onblur="this.style.borderColor='#cbd5e1'"
+                            />
+                          </div>
                           <button
                             (click)="calculateByRate(o, o.customRate)"
-                            style="background: #e2e8f0; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer;"
+                            title="Calcular"
+                            style="background: white; border: 1.5px solid #cbd5e1; color: #475569; padding: 8px; border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px;"
+                            onmouseover="this.style.borderColor='#3d39af'; this.style.color='#3d39af'; this.style.background='#f1f5f9'"
+                            onmouseout="this.style.borderColor='#cbd5e1'; this.style.color='#475569'; this.style.background='white'"
                           >
                             <i class="fa-solid fa-calculator"></i>
                           </button>
                         </div>
 
-                        <div style="display: flex; gap: 6px; align-items: center;">
-                          <span style="font-weight: 700; color: #3d39af; font-size: 14px;">
-                            Total: {{ o.selectedAmount | currency: 'C$' }}
-                          </span>
+                        <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 0;" />
+
+                        <!-- Fila de Resultado y Asignación -->
+                        <div
+                          style="display: flex; justify-content: space-between; align-items: center;"
+                        >
+                          <div style="display: flex; flex-direction: column;">
+                            <span
+                              style="font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;"
+                              >Total</span
+                            >
+                            <span style="font-weight: 800; color: #3d39af; font-size: 15px;">
+                              C$
+                              {{
+                                o.selectedAmount
+                                  ? (o.selectedAmount | number: '1.2-2' : 'en-US')
+                                  : '0.00'
+                              }}
+                            </span>
+                          </div>
                           <button
                             (click)="assignPrice(o.idOrder, o.selectedAmount)"
                             [disabled]="!o.selectedAmount"
-                            style="background-color: #5fcfa7; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer;"
+                            style="background-color: #10b981; color: white; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; transition: all 0.2s; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);"
+                            [style.opacity]="!o.selectedAmount ? '0.5' : '1'"
+                            [style.cursor]="!o.selectedAmount ? 'not-allowed' : 'pointer'"
+                            onmouseover="if(!this.disabled) { this.style.backgroundColor='#059669'; this.style.transform='translateY(-1px)'; }"
+                            onmouseout="if(!this.disabled) { this.style.backgroundColor='#10b981'; this.style.transform='none'; }"
                           >
-                            Asignar
+                            <i class="fa-solid fa-check"></i> Asignar precio
                           </button>
                         </div>
                       </div>
@@ -196,25 +241,55 @@ interface Order {
           </table>
         </div>
 
-        @if (totalPages() > 1) {
-          <div class="paginacion-estandar" style="padding: 16px 0;">
+        <div class="paginacion-estandar" style="padding: 16px 0; margin-top: 10px;">
+          <span class="pag-rango">{{ rangeLabel() }}</span>
+          <div class="pag-controles">
             <button
               class="btn-pag"
-              [disabled]="currentPage() <= 1"
+              [disabled]="currentPage() <= 1 || loading()"
+              (click)="goPage(1)"
+            >
+              <i class="fa-solid fa-angles-left"></i>
+            </button>
+            <button
+              class="btn-pag"
+              [disabled]="currentPage() <= 1 || loading()"
               (click)="goPage(currentPage() - 1)"
             >
               <i class="fa-solid fa-chevron-left"></i>
             </button>
-            <span>Página {{ currentPage() }} de {{ totalPages() }}</span>
+            <div class="pag-numeros">
+              @for (p of pagesArray(); track $index) {
+                @if (p === '...') {
+                  <span class="pag-ellipsis">...</span>
+                } @else {
+                  <button
+                    class="btn-pag-num"
+                    [class.active]="p === currentPage()"
+                    (click)="goPage($any(p))"
+                    [disabled]="loading()"
+                  >
+                    {{ p }}
+                  </button>
+                }
+              }
+            </div>
             <button
               class="btn-pag"
-              [disabled]="currentPage() >= totalPages()"
+              [disabled]="currentPage() >= totalPages() || loading()"
               (click)="goPage(currentPage() + 1)"
             >
               <i class="fa-solid fa-chevron-right"></i>
             </button>
+            <button
+              class="btn-pag"
+              [disabled]="currentPage() >= totalPages() || loading()"
+              (click)="goPage(totalPages())"
+            >
+              <i class="fa-solid fa-angles-right"></i>
+            </button>
           </div>
-        }
+        </div>
       </div>
     </div>
 
@@ -316,7 +391,7 @@ interface Order {
 
                       <div style="text-align: right;">
                         <p style="margin: 0; font-size: 15px; font-weight: 700; color: #3d39af;">
-                          C$ {{ det.amount ?? det.price ?? 0 | number: '1.2-2' }}
+                          C$ {{ det.amount ?? det.price ?? 0 | number: '1.2-2' : 'en-US' }}
                         </p>
                       </div>
                     </div>
@@ -360,6 +435,45 @@ export class OrdersListComponent implements OnInit {
   totalPages = signal(1);
   searchTerm = '';
   statusFilter = '';
+  perPage: number = 10;
+
+  rangeLabel = computed(() => {
+    if (this.total() === 0) return 'Mostrando 0 - 0 de 0 pedidos';
+    const start = (this.currentPage() - 1) * this.perPage + 1;
+    const end = Math.min(this.currentPage() * this.perPage, this.total());
+    return `Mostrando ${start} - ${end} de ${this.total()} pedidos`;
+  });
+
+  pagesArray = computed(() => {
+    const current = this.currentPage();
+    const last = this.totalPages();
+    const delta = 2;
+    const left = current - delta;
+    const right = current + delta + 1;
+    const range: number[] = [];
+    const rangeWithDots: (number | string)[] = [];
+    let l: number | undefined;
+
+    for (let i = 1; i <= last; i++) {
+      if (i === 1 || i === last || (i >= left && i < right)) {
+        range.push(i);
+      }
+    }
+
+    for (const i of range) {
+      if (l) {
+        if (i - l === 2) {
+          rangeWithDots.push(l + 1);
+        } else if (i - l !== 1) {
+          rangeWithDots.push('...');
+        }
+      }
+      rangeWithDots.push(i);
+      l = i;
+    }
+
+    return rangeWithDots;
+  });
 
   // Signals para controlar la visualización del Modal de Detalle
   showModal = signal(false);
@@ -387,7 +501,7 @@ export class OrdersListComponent implements OnInit {
 
   load(): void {
     this.loading.set(true);
-    let p = new HttpParams().set('page', this.currentPage()).set('perPage', 10);
+    let p = new HttpParams().set('page', this.currentPage()).set('perPage', this.perPage);
     if (this.companyId) p = p.set('idCompany', this.companyId);
     if (this.statusFilter) p = p.set('status', this.statusFilter);
 
@@ -459,6 +573,11 @@ export class OrdersListComponent implements OnInit {
       this.currentPage.set(1);
       this.load();
     }, 400);
+  }
+
+  onPerPageChange(): void {
+    this.currentPage.set(1);
+    this.load();
   }
 
   goPage(p: number): void {
