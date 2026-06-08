@@ -309,10 +309,10 @@ type StatusKey = 'pendiente' | 'completada' | 'cancelada' | 'en_proceso' | 'conf
                           </p>
                           <div class="detail-item-tags">
                             <span class="detail-tag">
-                              <i class="fa-solid fa-cubes"></i> Cant: {{ det.amount ?? 1 }}
+                              <i class="fa-solid fa-cubes"></i> Cant: {{ det.amount || 1 }}
                             </span>
                             <span class="detail-tag">
-                              <i class="fa-solid fa-weight-hanging"></i> Peso: {{ det.unitWeight ?? 'N/A' }}
+                              <i class="fa-solid fa-weight-hanging"></i> Peso: {{ det.unitWeight || 'N/A' }}
                             </span>
                             <span class="detail-tag">
                               <i class="fa-solid fa-box"></i> {{ getPackagingLabel(det.typePackaging) }}
