@@ -88,14 +88,20 @@ interface UserOption {
           </div>
 
           <div class="campo">
-            <label for="photoUrl">URL de Foto <span class="optional">(opcional)</span></label>
-            <input
-              id="photoUrl"
-              class="input-auth"
-              type="url"
-              formControlName="photoUrl"
-              placeholder="https://..."
-            />
+            <label>Foto / Logo <span class="optional">(opcional)</span></label>
+            <div class="file-upload-wrapper">
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                (change)="onFileSelected($event)"
+                class="file-input"
+              />
+              @if (photoPreviewUrl()) {
+                <img [src]="photoPreviewUrl()!" alt="Preview" class="photo-preview" />
+              } @else if (company?.photoUrl) {
+                <img [src]="company?.photoUrl" alt="Foto actual" class="photo-preview" />
+              }
+            </div>
           </div>
 
           <div class="form-actions">
@@ -114,7 +120,24 @@ interface UserOption {
       </div>
     </div>
   `,
-  styles: ``,
+  styles: `
+    .file-upload-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .file-input {
+      font-size: 14px;
+      color: #64748b;
+    }
+    .photo-preview {
+      width: 80px;
+      height: 80px;
+      border-radius: 8px;
+      object-fit: cover;
+      border: 1px solid #e2e8f0;
+    }
+  `,
 })
 export class CompanyFormComponent implements OnInit {
   @Input() company: Company | null = null;
@@ -130,11 +153,13 @@ export class CompanyFormComponent implements OnInit {
   users = signal<UserOption[]>([]);
   loadingUsers = signal(false);
 
+  selectedFile = signal<File | null>(null);
+  photoPreviewUrl = signal<string | null>(null);
+
   readonly form = this.fb.group({
     userId:       [null as number | null],
     businessName: ['', [Validators.required, Validators.minLength(2)]],
     ruc:          ['', [Validators.required, Validators.pattern(/^\d{11}$/)]],
-    photoUrl:     [''],
   });
 
   ngOnInit(): void {
@@ -143,13 +168,27 @@ export class CompanyFormComponent implements OnInit {
       this.form.patchValue({
         businessName: this.company.businessName,
         ruc:          this.company.ruc,
-        photoUrl:     this.company.photoUrl ?? '',
       });
     } else {
       // Create mode: userId required
       this.form.controls['userId'].setValidators([Validators.required]);
       this.form.controls['userId'].updateValueAndValidity();
       this.loadUsers();
+    }
+  }
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    this.selectedFile.set(file);
+
+    if (this.photoPreviewUrl()) {
+      URL.revokeObjectURL(this.photoPreviewUrl()!);
+    }
+    if (file) {
+      this.photoPreviewUrl.set(URL.createObjectURL(file));
+    } else {
+      this.photoPreviewUrl.set(null);
     }
   }
 
@@ -185,8 +224,11 @@ export class CompanyFormComponent implements OnInit {
     const payload: any = {
       businessName: raw.businessName!,
       ruc:          raw.ruc!,
-      photoUrl:     raw.photoUrl || null,
     };
+
+    if (this.selectedFile()) {
+      payload.photo = this.selectedFile();
+    }
 
     if (!this.company && raw.userId) {
       payload['userId'] = Number(raw.userId);

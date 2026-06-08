@@ -33,11 +33,31 @@ export class ClientService {
   }
 
   create(data: CreateClientDto): Observable<Client> {
-    return this.http.post<Client>(`${this.base}/api/clients`, data);
+    const fd = new FormData();
+    fd.append('companyName', data.companyName);
+    fd.append('ruc', data.ruc);
+    fd.append('address', data.address);
+    fd.append('typeClient', data.typeClient);
+    if (data.userId) {
+      fd.append('userId', String(data.userId));
+    }
+    if (data.photo) {
+      fd.append('photo', data.photo, data.photo.name);
+    }
+    return this.http.post<Client>(`${this.base}/api/clients`, fd);
   }
 
   update(id: number, data: UpdateClientDto): Observable<Client> {
-    return this.http.put<Client>(`${this.base}/api/clients/${id}`, data);
+    const fd = new FormData();
+    if (data.companyName) fd.append('companyName', data.companyName);
+    if (data.ruc) fd.append('ruc', data.ruc);
+    if (data.address) fd.append('address', data.address);
+    if (data.typeClient) fd.append('typeClient', data.typeClient);
+    if (data.userId) fd.append('userId', String(data.userId));
+    if (data.photo) {
+      fd.append('photo', data.photo, data.photo.name);
+    }
+    return this.http.put<Client>(`${this.base}/api/clients/${id}`, fd);
   }
 
   delete(id: number): Observable<{ message: string }> {

@@ -92,8 +92,20 @@ interface UserOption {
           </div>
 
           <div class="campo">
-            <label for="photoUrlC">URL de Foto <span class="optional">(opcional)</span></label>
-            <input id="photoUrlC" class="input-auth" type="url" formControlName="photoUrl" placeholder="https://..." />
+            <label>Foto / Logo <span class="optional">(opcional)</span></label>
+            <div class="file-upload-wrapper">
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                (change)="onFileSelected($event)"
+                class="file-input"
+              />
+              @if (photoPreviewUrl()) {
+                <img [src]="photoPreviewUrl()!" alt="Preview" class="photo-preview" />
+              } @else if (client?.photoUrl) {
+                <img [src]="client?.photoUrl" alt="Foto actual" class="photo-preview" />
+              }
+            </div>
           </div>
 
           <div class="form-actions">
@@ -112,7 +124,24 @@ interface UserOption {
       </div>
     </div>
   `,
-  styles: ``,
+  styles: `
+    .file-upload-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .file-input {
+      font-size: 14px;
+      color: #64748b;
+    }
+    .photo-preview {
+      width: 80px;
+      height: 80px;
+      border-radius: 8px;
+      object-fit: cover;
+      border: 1px solid #e2e8f0;
+    }
+  `,
 })
 export class ClientFormComponent implements OnInit {
   @Input() client: Client | null = null;
@@ -128,13 +157,15 @@ export class ClientFormComponent implements OnInit {
   users        = signal<UserOption[]>([]);
   loadingUsers = signal(false);
 
+  selectedFile = signal<File | null>(null);
+  photoPreviewUrl = signal<string | null>(null);
+
   readonly form = this.fb.group({
     userId:      [null as number | null],
     companyName: ['', [Validators.required, Validators.minLength(2)]],
     ruc:         ['', [Validators.required, Validators.pattern(/^\d{11}$/)]],
     address:     ['', [Validators.required]],
     typeClient:  ['legal' as 'legal' | 'natural', [Validators.required]],
-    photoUrl:    [''],
   });
 
   ngOnInit(): void {
@@ -145,13 +176,27 @@ export class ClientFormComponent implements OnInit {
         ruc:         this.client.ruc,
         address:     this.client.address,
         typeClient:  this.client.typeClient,
-        photoUrl:    this.client.photoUrl ?? '',
       });
     } else {
       // Modo creación: userId requerido, cargar usuarios sin asignar
       this.form.controls['userId'].setValidators([Validators.required]);
       this.form.controls['userId'].updateValueAndValidity();
       this.loadUsers();
+    }
+  }
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    this.selectedFile.set(file);
+
+    if (this.photoPreviewUrl()) {
+      URL.revokeObjectURL(this.photoPreviewUrl()!);
+    }
+    if (file) {
+      this.photoPreviewUrl.set(URL.createObjectURL(file));
+    } else {
+      this.photoPreviewUrl.set(null);
     }
   }
 
@@ -188,8 +233,11 @@ export class ClientFormComponent implements OnInit {
       ruc:         raw.ruc!,
       address:     raw.address!,
       typeClient:  raw.typeClient as 'legal' | 'natural',
-      photoUrl:    raw.photoUrl || null,
     };
+
+    if (this.selectedFile()) {
+      payload.photo = this.selectedFile();
+    }
 
     if (!this.client && raw.userId) {
       payload['userId'] = Number(raw.userId);

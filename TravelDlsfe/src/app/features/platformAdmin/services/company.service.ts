@@ -31,11 +31,27 @@ export class CompanyService {
   }
 
   create(data: CreateCompanyDto): Observable<Company> {
-    return this.http.post<Company>(`${this.base}/api/companies`, data);
+    const fd = new FormData();
+    fd.append('businessName', data.businessName);
+    fd.append('ruc', data.ruc);
+    if (data.userId) {
+      fd.append('userId', String(data.userId));
+    }
+    if (data.photo) {
+      fd.append('photo', data.photo, data.photo.name);
+    }
+    return this.http.post<Company>(`${this.base}/api/companies`, fd);
   }
 
   update(id: number, data: UpdateCompanyDto): Observable<Company> {
-    return this.http.put<Company>(`${this.base}/api/companies/${id}`, data);
+    const fd = new FormData();
+    if (data.businessName) fd.append('businessName', data.businessName);
+    if (data.ruc) fd.append('ruc', data.ruc);
+    if (data.userId) fd.append('userId', String(data.userId));
+    if (data.photo) {
+      fd.append('photo', data.photo, data.photo.name);
+    }
+    return this.http.put<Company>(`${this.base}/api/companies/${id}`, fd);
   }
 
   delete(id: number): Observable<{ message: string }> {

@@ -22,11 +22,13 @@ export interface CompanyPaginator {
 export interface CreateCompanyDto {
   businessName: string;
   ruc: string;
-  photoUrl?: string | null;
+  photo?: File | null;
+  userId?: number;
 }
 
 export interface UpdateCompanyDto {
   businessName?: string;
   ruc?: string;
-  photoUrl?: string | null;
+  photo?: File | null;
+  userId?: number;
 }

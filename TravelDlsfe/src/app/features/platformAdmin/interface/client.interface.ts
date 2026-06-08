@@ -26,7 +26,7 @@ export interface CreateClientDto {
   ruc: string;
   address: string;
   typeClient: 'legal' | 'natural';
-  photoUrl?: string | null;
+  photo?: File | null;
   userId?: number;
 }
 
@@ -35,5 +35,6 @@ export interface UpdateClientDto {
   ruc?: string;
   address?: string;
   typeClient?: 'legal' | 'natural';
-  photoUrl?: string | null;
+  photo?: File | null;
+  userId?: number;
 }

@@ -16,11 +16,25 @@ export class ClientService {
   }
 
   createProfile(body: any): Observable<ClientProfile> {
-    return this.http.post<ClientProfile>(`${this.base}/api/clients`, body);
+    const fd = new FormData();
+    if (body.userId) fd.append('userId', String(body.userId));
+    if (body.companyName) fd.append('companyName', body.companyName);
+    if (body.ruc) fd.append('ruc', body.ruc);
+    if (body.address) fd.append('address', body.address);
+    if (body.typeClient) fd.append('typeClient', body.typeClient);
+    if (body.photo) fd.append('photo', body.photo, body.photo.name);
+    return this.http.post<ClientProfile>(`${this.base}/api/clients`, fd);
   }
 
   updateProfile(idClient: number, body: any): Observable<ClientProfile> {
-    return this.http.put<ClientProfile>(`${this.base}/api/clients/${idClient}`, body);
+    const fd = new FormData();
+    if (body.userId) fd.append('userId', String(body.userId));
+    if (body.companyName) fd.append('companyName', body.companyName);
+    if (body.ruc) fd.append('ruc', body.ruc);
+    if (body.address) fd.append('address', body.address);
+    if (body.typeClient) fd.append('typeClient', body.typeClient);
+    if (body.photo) fd.append('photo', body.photo, body.photo.name);
+    return this.http.put<ClientProfile>(`${this.base}/api/clients/${idClient}`, fd);
   }
 
   getOrders(params: {
