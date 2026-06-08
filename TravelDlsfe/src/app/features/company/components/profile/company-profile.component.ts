@@ -34,11 +34,23 @@ import { startWith } from 'rxjs';
         <div [class.content-blur]="loading()">
           <!-- Company Info Header -->
           <div class="company-info-header">
-            <div class="company-icon-large" *ngIf="!company()?.photoUrl">
-              <!-- Lucide Building Icon -->
-              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="9" x2="15" y1="22" y2="22"/><line x1="9" x2="15" y1="18" y2="18"/><line x1="9" x2="15" y1="14" y2="14"/><line x1="9" x2="15" y1="10" y2="10"/><line x1="9" x2="15" y1="6" y2="6"/></svg>
+            <div class="avatar-section" style="position: relative; display: inline-block;">
+              <div class="company-icon-large" *ngIf="!company()?.photoUrl && !photoPreviewUrl()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="9" x2="15" y1="22" y2="22"/><line x1="9" x2="15" y1="18" y2="18"/><line x1="9" x2="15" y1="14" y2="14"/><line x1="9" x2="15" y1="10" y2="10"/><line x1="9" x2="15" y1="6" y2="6"/></svg>
+              </div>
+              <img *ngIf="photoPreviewUrl() || company()?.photoUrl" [src]="photoPreviewUrl() || company()?.photoUrl" class="company-photo-large" alt="Logo de empresa" />
+              
+              <label class="camera-btn" for="photoUpload" title="Cambiar logo" style="position: absolute; bottom: -5px; right: -5px; width: 30px; height: 30px; border-radius: 50%; background: #8a5cc2; color: white; border: 2px solid white; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+              </label>
+              <input 
+                id="photoUpload" 
+                type="file" 
+                accept="image/jpeg,image/png,image/webp" 
+                style="display:none" 
+                (change)="onFileSelected($event)" 
+              />
             </div>
-            <img *ngIf="company()?.photoUrl" [src]="company()?.photoUrl" class="company-photo-large" alt="Logo de empresa" />
             <div class="company-details-large">
               <h2>{{ currentFormValue().razonSocial || company()?.businessName || 'Empresa' }}</h2>
               <span class="ruc-badge">RUC: {{ currentFormValue().ruc || 'Pendiente' }}</span>
@@ -93,20 +105,7 @@ import { startWith } from 'rxjs';
               </div>
             </div>
 
-            <div class="form-group full-width">
-              <label for="logo">
-                <!-- Lucide Link Icon -->
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="label-icon"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-                URL del Logo <span class="opcional">(Opcional)</span>
-              </label>
-              <input 
-                type="text" 
-                id="logo" 
-                class="form-input" 
-                formControlName="logo"
-                placeholder="Ej: https://midominio.com/logo.png"
-              />
-            </div>
+
 
             <div class="form-actions">
               <button type="submit" class="btn-save" [disabled]="!isActuallyDirty() || form.invalid || saving">
@@ -397,17 +396,18 @@ export class CompanyProfileComponent implements OnInit {
   rucError = signal(false);
 
   // Store initial values to detect real changes
-  initialValues = signal<{ ruc: string; razonSocial: string; logo: string }>({
+  initialValues = signal<{ ruc: string; razonSocial: string }>({
     ruc: '',
-    razonSocial: '',
-    logo: ''
+    razonSocial: ''
   });
 
   form = this.fb.group({
     ruc: ['', Validators.required],
     razonSocial: ['', Validators.required],
-    logo: [''],
   });
+
+  selectedFile = signal<File | null>(null);
+  photoPreviewUrl = signal<string | null>(null);
 
   // Create a signal from form changes to make 'isActuallyDirty' reactive
   // Using startWith to ensure it has the initial form value immediately
@@ -423,11 +423,26 @@ export class CompanyProfileComponent implements OnInit {
     
     return (current.ruc ?? '') !== initial.ruc || 
            (current.razonSocial ?? '') !== initial.razonSocial || 
-           (current.logo || '') !== initial.logo;
+           this.selectedFile() !== null;
   });
 
   ngOnInit() {
     this.loadCompanyData();
+  }
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    this.selectedFile.set(file);
+
+    if (this.photoPreviewUrl()) {
+      URL.revokeObjectURL(this.photoPreviewUrl()!);
+    }
+    if (file) {
+      this.photoPreviewUrl.set(URL.createObjectURL(file));
+    } else {
+      this.photoPreviewUrl.set(null);
+    }
   }
 
   private loadCompanyData() {
@@ -452,7 +467,6 @@ export class CompanyProfileComponent implements OnInit {
         const initial = {
           ruc: mappedCompany.ruc || '',
           razonSocial: mappedCompany.businessName || '',
-          logo: mappedCompany.photoUrl || '',
         };
 
         this.company.set(mappedCompany);
@@ -489,7 +503,7 @@ export class CompanyProfileComponent implements OnInit {
     const updatePayload: any = {};
     if (currentValues.razonSocial !== initial.razonSocial) updatePayload.businessName = currentValues.razonSocial;
     if (currentValues.ruc !== initial.ruc) updatePayload.ruc = currentValues.ruc;
-    if ((currentValues.logo || '') !== initial.logo) updatePayload.photoUrl = currentValues.logo || null;
+    if (this.selectedFile()) updatePayload.photo = this.selectedFile();
 
     this.companyService.update(idCompany, updatePayload).subscribe({
       next: (c: any) => {
@@ -508,8 +522,9 @@ export class CompanyProfileComponent implements OnInit {
         const newInitial = {
           ruc: mappedCompany.ruc || '',
           razonSocial: mappedCompany.businessName || '',
-          logo: mappedCompany.photoUrl || '',
         };
+
+        this.selectedFile.set(null);
 
         this.company.set(mappedCompany);
         this.initialValues.set(newInitial);

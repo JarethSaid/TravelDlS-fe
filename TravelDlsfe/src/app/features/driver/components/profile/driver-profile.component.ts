@@ -29,11 +29,24 @@ interface DriverProfile {
         <div class="avatar-section">
           <div class="avatar-wrapper">
             <div class="avatar">
-              <i class="fa-solid fa-user-large"></i>
+              @if (photoPreviewUrl()) {
+                <img [src]="photoPreviewUrl()!" alt="Preview" class="avatar-img" />
+              } @else if (profile()?.photoUrl) {
+                <img [src]="profile()?.photoUrl" alt="Foto actual" class="avatar-img" />
+              } @else {
+                <i class="fa-solid fa-user-large"></i>
+              }
             </div>
-            <button class="camera-btn" type="button">
+            <label class="camera-btn" for="photoUpload" title="Cambiar foto">
               <i class="fa-solid fa-camera"></i>
-            </button>
+            </label>
+            <input 
+              id="photoUpload" 
+              type="file" 
+              accept="image/jpeg,image/png,image/webp" 
+              style="display:none" 
+              (change)="onFileSelected($event)" 
+            />
           </div>
           <div class="header-info">
             <h1>{{ displayUserName() }}</h1>
@@ -159,6 +172,13 @@ interface DriverProfile {
         font-size: 36px;
         color: #94a3b8;
         border: 2px solid #e2e8f0;
+        overflow: hidden;
+      }
+
+      .avatar-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
       }
 
       .camera-btn {
@@ -394,8 +414,26 @@ export class DriverProfileComponent implements OnInit {
   passport = '';
   status = 'available';
 
+  selectedFile = signal<File | null>(null);
+  photoPreviewUrl = signal<string | null>(null);
+
   ngOnInit(): void {
     this.loadProfile();
+  }
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    this.selectedFile.set(file);
+
+    if (this.photoPreviewUrl()) {
+      URL.revokeObjectURL(this.photoPreviewUrl()!);
+    }
+    if (file) {
+      this.photoPreviewUrl.set(URL.createObjectURL(file));
+    } else {
+      this.photoPreviewUrl.set(null);
+    }
   }
 
   private loadProfile(): void {
@@ -431,6 +469,7 @@ export class DriverProfileComponent implements OnInit {
       license: this.license,
       passport: this.passport,
       status: this.status,
+      photo: this.selectedFile(),
     };
 
     const request$ = u.idDriver

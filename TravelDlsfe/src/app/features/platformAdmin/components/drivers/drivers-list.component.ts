@@ -2,7 +2,7 @@ import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpParams } from '@angular/common/http';
-import { DriverService } from '../../services/driver.service';
+import { DriverService, DriverUpdatePayload } from '../../services/driver.service';
 import { DriverLinkFormComponent } from './driver-link-form.component';
 import { InteractionService } from '../../../../shared/service/interaction.service';
 import { getHttpErrorMessage } from '../../../../core/http/http-error.util';
@@ -86,26 +86,36 @@ interface Driver {
               <th>Pasaporte</th>
               <th>Empresa</th>
               <th>Estado</th>
+              <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
             @if (loading()) {
               <tr>
-                <td colspan="5" class="tabla-vacia">
+                <td colspan="6" class="tabla-vacia">
                   <i class="fa-solid fa-spinner fa-spin"></i> Cargando…
                 </td>
               </tr>
             } @else if (drivers().length === 0) {
               <tr>
-                <td colspan="5" class="tabla-vacia">No hay conductores registrados.</td>
+                <td colspan="6" class="tabla-vacia">No hay conductores registrados.</td>
               </tr>
             } @else {
               @for (d of drivers(); track d.idDriver) {
                 <tr>
                   <td>
                     <div class="driver-id-cell">
+                      <!-- Foto o ícono fallback -->
                       <div class="driver-avatar">
-                        <i class="fa-solid fa-user-tie"></i>
+                        @if (d.photoUrl) {
+                          <img
+                            [src]="d.photoUrl"
+                            [alt]="d.user?.name ?? 'Conductor'"
+                            class="driver-photo"
+                          />
+                        } @else {
+                          <i class="fa-solid fa-user-tie"></i>
+                        }
                       </div>
                       <div>
                         <span class="txt-negrita">
@@ -128,6 +138,15 @@ interface Driver {
                     <span [class]="statusBadgeClass(d.status)">
                       {{ statusLabel(d.status) }}
                     </span>
+                  </td>
+                  <td>
+                    <button
+                      class="btn-icon-edit"
+                      title="Editar foto del conductor"
+                      (click)="openPhotoEdit(d)"
+                    >
+                      <i class="fa-solid fa-camera"></i>
+                    </button>
                   </td>
                 </tr>
               }
@@ -192,9 +211,165 @@ interface Driver {
       @if (showLinkForm()) {
         <app-driver-link-form (saved)="onLinkSaved()" (cancelled)="showLinkForm.set(false)" />
       }
+
+      <!-- ===== Modal de edición de foto ===== -->
+      @if (editingDriver()) {
+        <div class="modal-fondo" (click)="onPhotoModalBackdrop($event)">
+          <div class="modal-caja" (click)="$event.stopPropagation()">
+            <button class="boton-cerrar" type="button" (click)="closePhotoEdit()">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <h2 class="modal-titulo">
+              <i class="fa-solid fa-camera"></i>
+              Foto del Conductor
+            </h2>
+
+            <p class="modal-subtitle">
+              {{ cleanDriverName(editingDriver()!.user?.name) || ('Conductor #' + editingDriver()!.idDriver) }}
+            </p>
+
+            <!-- Preview zona -->
+            <div class="photo-preview-area">
+              @if (photoPreviewUrl()) {
+                <img [src]="photoPreviewUrl()!" alt="Preview" class="photo-preview-img" />
+              } @else if (editingDriver()!.photoUrl) {
+                <img [src]="editingDriver()!.photoUrl!" alt="Foto actual" class="photo-preview-img" />
+              } @else {
+                <div class="photo-placeholder">
+                  <i class="fa-solid fa-user-tie"></i>
+                  <span>Sin foto</span>
+                </div>
+              }
+            </div>
+
+            <!-- Drop zone / selector -->
+            <label class="drop-zone" for="photoInput">
+              <i class="fa-solid fa-cloud-arrow-up"></i>
+              <span>{{ selectedFile() ? selectedFile()!.name : 'Haz clic o arrastra una imagen' }}</span>
+              <small>JPG, PNG, WEBP — máx. 2 MB</small>
+              <input
+                id="photoInput"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                style="display:none"
+                (change)="onFileSelected($event)"
+              />
+            </label>
+
+            <div class="form-actions" style="margin-top:20px">
+              <button type="button" class="btn-cancelar-form" (click)="closePhotoEdit()">
+                Cancelar
+              </button>
+              <button
+                type="button"
+                class="btn-enviar"
+                [disabled]="!selectedFile() || savingPhoto()"
+                (click)="savePhoto()"
+              >
+                @if (savingPhoto()) {
+                  <i class="fa-solid fa-spinner fa-spin"></i> Subiendo…
+                } @else {
+                  <i class="fa-solid fa-floppy-disk"></i> Guardar foto
+                }
+              </button>
+            </div>
+          </div>
+        </div>
+      }
     </div>
   `,
-  styles: ``,
+  styles: `
+    /* ---- Foto en tabla ---- */
+    .driver-photo {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--color-primary, #6366f1);
+    }
+
+    /* ---- Botón ícono editar ---- */
+    .btn-icon-edit {
+      background: transparent;
+      border: 1.5px solid var(--color-primary, #6366f1);
+      color: var(--color-primary, #6366f1);
+      border-radius: 6px;
+      padding: 5px 9px;
+      cursor: pointer;
+      transition: background 0.18s, color 0.18s;
+      font-size: 0.85rem;
+    }
+    .btn-icon-edit:hover {
+      background: var(--color-primary, #6366f1);
+      color: #fff;
+    }
+
+    /* ---- Modal subtítulo ---- */
+    .modal-subtitle {
+      text-align: center;
+      color: var(--color-text-secondary, #94a3b8);
+      font-size: 0.9rem;
+      margin: -8px 0 18px;
+    }
+
+    /* ---- Área preview foto ---- */
+    .photo-preview-area {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+    .photo-preview-img {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid var(--color-primary, #6366f1);
+      box-shadow: 0 4px 18px rgba(99,102,241,0.25);
+    }
+    .photo-placeholder {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: var(--color-surface, #1e293b);
+      border: 2px dashed var(--color-border, #334155);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      color: var(--color-text-secondary, #64748b);
+      font-size: 2rem;
+    }
+    .photo-placeholder span {
+      font-size: 0.75rem;
+    }
+
+    /* ---- Drop zone ---- */
+    .drop-zone {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      border: 2px dashed var(--color-primary, #6366f1);
+      border-radius: 10px;
+      padding: 20px;
+      cursor: pointer;
+      color: var(--color-primary, #6366f1);
+      transition: background 0.2s;
+      font-size: 0.9rem;
+    }
+    .drop-zone:hover {
+      background: rgba(99,102,241,0.08);
+    }
+    .drop-zone i {
+      font-size: 1.8rem;
+    }
+    .drop-zone small {
+      color: var(--color-text-secondary, #64748b);
+      font-size: 0.78rem;
+    }
+  `,
 })
 export class DriversListComponent implements OnInit {
   private readonly driverService = inject(DriverService);
@@ -210,6 +385,12 @@ export class DriversListComponent implements OnInit {
   statusFilter = '';
 
   showLinkForm = signal(false);
+
+  // --- Photo edit modal state ---
+  editingDriver = signal<Driver | null>(null);
+  selectedFile = signal<File | null>(null);
+  photoPreviewUrl = signal<string | null>(null);
+  savingPhoto = signal(false);
 
   rangeLabel = computed(() => {
     const t = this.total();
@@ -290,6 +471,74 @@ export class DriversListComponent implements OnInit {
     this.showLinkForm.set(false);
     this.load();
   }
+
+  // ---- Photo edit modal ----
+
+  openPhotoEdit(driver: Driver): void {
+    this.editingDriver.set(driver);
+    this.selectedFile.set(null);
+    this.photoPreviewUrl.set(null);
+  }
+
+  closePhotoEdit(): void {
+    this.editingDriver.set(null);
+    this.selectedFile.set(null);
+    this.photoPreviewUrl.set(null);
+  }
+
+  onPhotoModalBackdrop(e: MouseEvent): void {
+    if ((e.target as HTMLElement).classList.contains('modal-fondo')) {
+      this.closePhotoEdit();
+    }
+  }
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    this.selectedFile.set(file);
+
+    // Generar preview local
+    if (this.photoPreviewUrl()) {
+      URL.revokeObjectURL(this.photoPreviewUrl()!);
+    }
+    if (file) {
+      this.photoPreviewUrl.set(URL.createObjectURL(file));
+    } else {
+      this.photoPreviewUrl.set(null);
+    }
+  }
+
+  savePhoto(): void {
+    const driver = this.editingDriver();
+    const file = this.selectedFile();
+    if (!driver || !file || this.savingPhoto()) return;
+
+    this.savingPhoto.set(true);
+    const payload: DriverUpdatePayload = { photo: file };
+
+    this.driverService.updateDriverWithPhoto(driver.idDriver, payload).subscribe({
+      next: (updated) => {
+        this.savingPhoto.set(false);
+        this.ui.showToast('Foto actualizada correctamente', 'success');
+
+        // Actualizar la foto en la lista local sin recargar toda la tabla
+        this.drivers.update((list) =>
+          list.map((d) =>
+            d.idDriver === driver.idDriver
+              ? { ...d, photoUrl: updated.photoUrl ?? d.photoUrl }
+              : d
+          )
+        );
+        this.closePhotoEdit();
+      },
+      error: (err) => {
+        this.savingPhoto.set(false);
+        this.ui.showToast(getHttpErrorMessage(err), 'error');
+      },
+    });
+  }
+
+  // ---- Helpers ----
 
   statusLabel(status: string): string {
     const map: Record<string, string> = {
