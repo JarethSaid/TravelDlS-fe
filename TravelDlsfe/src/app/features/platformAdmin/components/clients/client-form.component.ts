@@ -6,6 +6,7 @@ import { Client } from '../../interface/client.interface';
 import { InteractionService } from '../../../../shared/service/interaction.service';
 import { getHttpErrorMessage } from '../../../../core/http/http-error.util';
 import { UserService } from '../../services/user.service';
+import { ImageCropperModalComponent } from '../../../../shared/components/image-cropper-modal/image-cropper-modal.component';
 
 interface UserOption {
   idUser: number;
@@ -16,7 +17,7 @@ interface UserOption {
 @Component({
   selector: 'app-client-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, ImageCropperModalComponent],
   template: `
     <div class="modal-fondo" (click)="onBackdrop($event)">
       <div class="modal-caja modal-wider" (click)="$event.stopPropagation()">
@@ -103,7 +104,7 @@ interface UserOption {
               @if (photoPreviewUrl()) {
                 <img [src]="photoPreviewUrl()!" alt="Preview" class="photo-preview" />
               } @else if (client?.photoUrl) {
-                <img [src]="client?.photoUrl" alt="Foto actual" class="photo-preview" />
+                <img [src]="client!.photoUrl" alt="Foto actual" class="photo-preview" />
               }
             </div>
           </div>
@@ -122,6 +123,15 @@ interface UserOption {
           </div>
         </form>
       </div>
+      
+      @if (imageChangedEvent()) {
+        <app-image-cropper-modal
+          [imageChangedEvent]="imageChangedEvent()"
+          [roundCropper]="true"
+          (croppedImage)="onImageCropped($event)"
+          (cancelled)="cancelCrop()"
+        ></app-image-cropper-modal>
+      }
     </div>
   `,
   styles: `
@@ -159,6 +169,7 @@ export class ClientFormComponent implements OnInit {
 
   selectedFile = signal<File | null>(null);
   photoPreviewUrl = signal<string | null>(null);
+  imageChangedEvent = signal<any>('');
 
   readonly form = this.fb.group({
     userId:      [null as number | null],
@@ -187,7 +198,13 @@ export class ClientFormComponent implements OnInit {
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const file = input.files?.[0] ?? null;
+    if (input.files?.length) {
+      this.imageChangedEvent.set(event);
+    }
+  }
+
+  onImageCropped(file: File | null): void {
+    this.imageChangedEvent.set('');
     this.selectedFile.set(file);
 
     if (this.photoPreviewUrl()) {
@@ -198,6 +215,16 @@ export class ClientFormComponent implements OnInit {
     } else {
       this.photoPreviewUrl.set(null);
     }
+    
+    // Reset input file value
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    if (input) input.value = '';
+  }
+
+  cancelCrop(): void {
+    this.imageChangedEvent.set('');
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    if (input) input.value = '';
   }
 
   loadUsers(): void {

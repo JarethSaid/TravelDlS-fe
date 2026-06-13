@@ -6,6 +6,7 @@ import { DriverService, DriverUpdatePayload } from '../../services/driver.servic
 import { DriverLinkFormComponent } from './driver-link-form.component';
 import { InteractionService } from '../../../../shared/service/interaction.service';
 import { getHttpErrorMessage } from '../../../../core/http/http-error.util';
+import { ImageCropperModalComponent } from '../../../../shared/components/image-cropper-modal/image-cropper-modal.component';
 
 interface Driver {
   idDriver: number;
@@ -23,7 +24,7 @@ interface Driver {
 @Component({
   selector: 'app-drivers-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, DriverLinkFormComponent],
+  imports: [CommonModule, FormsModule, DriverLinkFormComponent, ImageCropperModalComponent],
   template: `
     <div>
       <div class="page-header">
@@ -121,7 +122,7 @@ interface Driver {
                         <span class="txt-negrita">
                           {{
                             d.user?.name
-                              ? cleanDriverName(d.user?.name)
+                              ? cleanDriverName(d.user!.name)
                               : 'Conductor #' + d.idDriver
                           }}
                         </span>
@@ -277,6 +278,15 @@ interface Driver {
           </div>
         </div>
       }
+      
+      @if (imageChangedEvent()) {
+        <app-image-cropper-modal
+          [imageChangedEvent]="imageChangedEvent()"
+          [roundCropper]="true"
+          (croppedImage)="onImageCropped($event)"
+          (cancelled)="cancelCrop()"
+        ></app-image-cropper-modal>
+      }
     </div>
   `,
   styles: `
@@ -391,6 +401,7 @@ export class DriversListComponent implements OnInit {
   selectedFile = signal<File | null>(null);
   photoPreviewUrl = signal<string | null>(null);
   savingPhoto = signal(false);
+  imageChangedEvent = signal<any>('');
 
   rangeLabel = computed(() => {
     const t = this.total();
@@ -484,6 +495,7 @@ export class DriversListComponent implements OnInit {
     this.editingDriver.set(null);
     this.selectedFile.set(null);
     this.photoPreviewUrl.set(null);
+    this.imageChangedEvent.set('');
   }
 
   onPhotoModalBackdrop(e: MouseEvent): void {
@@ -494,10 +506,15 @@ export class DriversListComponent implements OnInit {
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const file = input.files?.[0] ?? null;
+    if (input.files?.length) {
+      this.imageChangedEvent.set(event);
+    }
+  }
+
+  onImageCropped(file: File | null): void {
+    this.imageChangedEvent.set('');
     this.selectedFile.set(file);
 
-    // Generar preview local
     if (this.photoPreviewUrl()) {
       URL.revokeObjectURL(this.photoPreviewUrl()!);
     }
@@ -506,6 +523,15 @@ export class DriversListComponent implements OnInit {
     } else {
       this.photoPreviewUrl.set(null);
     }
+    
+    const input = document.getElementById('photoInput') as HTMLInputElement;
+    if (input) input.value = '';
+  }
+
+  cancelCrop(): void {
+    this.imageChangedEvent.set('');
+    const input = document.getElementById('photoInput') as HTMLInputElement;
+    if (input) input.value = '';
   }
 
   savePhoto(): void {
