@@ -6,6 +6,7 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { InteractionService } from '../../../../shared/service/interaction.service';
 import { getHttpErrorMessage } from '../../../../core/http/http-error.util';
 import { stripLicenseFromDisplayName } from '../../../../shared/utils/driver-display.util';
+import { ImageCropperModalComponent } from '../../../../shared/components/image-cropper-modal/image-cropper-modal.component';
 
 interface DriverProfile {
   idDriver: number;
@@ -21,7 +22,7 @@ interface DriverProfile {
 @Component({
   selector: 'app-driver-profile',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ImageCropperModalComponent],
   template: `
     <div class="profile-page">
       <!-- Header card -->
@@ -131,6 +132,15 @@ interface DriverProfile {
           </div>
         }
       </div>
+      
+      @if (imageChangedEvent()) {
+        <app-image-cropper-modal
+          [imageChangedEvent]="imageChangedEvent()"
+          [roundCropper]="true"
+          (croppedImage)="onImageCropped($event)"
+          (cancelled)="cancelCrop()"
+        ></app-image-cropper-modal>
+      }
     </div>
   `,
   styles: [
@@ -416,6 +426,7 @@ export class DriverProfileComponent implements OnInit {
 
   selectedFile = signal<File | null>(null);
   photoPreviewUrl = signal<string | null>(null);
+  imageChangedEvent = signal<any>('');
 
   ngOnInit(): void {
     this.loadProfile();
@@ -423,7 +434,13 @@ export class DriverProfileComponent implements OnInit {
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const file = input.files?.[0] ?? null;
+    if (input.files?.length) {
+      this.imageChangedEvent.set(event);
+    }
+  }
+
+  onImageCropped(file: File | null): void {
+    this.imageChangedEvent.set('');
     this.selectedFile.set(file);
 
     if (this.photoPreviewUrl()) {
@@ -434,6 +451,15 @@ export class DriverProfileComponent implements OnInit {
     } else {
       this.photoPreviewUrl.set(null);
     }
+    
+    const input = document.getElementById('photoUpload') as HTMLInputElement;
+    if (input) input.value = '';
+  }
+
+  cancelCrop(): void {
+    this.imageChangedEvent.set('');
+    const input = document.getElementById('photoUpload') as HTMLInputElement;
+    if (input) input.value = '';
   }
 
   private loadProfile(): void {

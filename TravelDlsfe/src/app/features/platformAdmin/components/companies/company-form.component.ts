@@ -6,6 +6,7 @@ import { Company } from '../../interface/company.interface';
 import { InteractionService } from '../../../../shared/service/interaction.service';
 import { getHttpErrorMessage } from '../../../../core/http/http-error.util';
 import { UserService } from '../../services/user.service';
+import { ImageCropperModalComponent } from '../../../../shared/components/image-cropper-modal/image-cropper-modal.component';
 
 interface UserOption {
   idUser: number;
@@ -16,7 +17,7 @@ interface UserOption {
 @Component({
   selector: 'app-company-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, ImageCropperModalComponent],
   template: `
     <div class="modal-fondo" (click)="onBackdrop($event)">
       <div class="modal-caja modal-wider" (click)="$event.stopPropagation()">
@@ -99,7 +100,7 @@ interface UserOption {
               @if (photoPreviewUrl()) {
                 <img [src]="photoPreviewUrl()!" alt="Preview" class="photo-preview" />
               } @else if (company?.photoUrl) {
-                <img [src]="company?.photoUrl" alt="Foto actual" class="photo-preview" />
+                <img [src]="company!.photoUrl" alt="Foto actual" class="photo-preview" />
               }
             </div>
           </div>
@@ -118,6 +119,15 @@ interface UserOption {
           </div>
         </form>
       </div>
+      
+      @if (imageChangedEvent()) {
+        <app-image-cropper-modal
+          [imageChangedEvent]="imageChangedEvent()"
+          [roundCropper]="true"
+          (croppedImage)="onImageCropped($event)"
+          (cancelled)="cancelCrop()"
+        ></app-image-cropper-modal>
+      }
     </div>
   `,
   styles: `
@@ -155,11 +165,12 @@ export class CompanyFormComponent implements OnInit {
 
   selectedFile = signal<File | null>(null);
   photoPreviewUrl = signal<string | null>(null);
+  imageChangedEvent = signal<any>('');
 
   readonly form = this.fb.group({
     userId:       [null as number | null],
     businessName: ['', [Validators.required, Validators.minLength(2)]],
-    ruc:          ['', [Validators.required, Validators.pattern(/^\d{11}$/)]],
+    ruc:          ['', [Validators.required, Validators.pattern(/^\\d{11}$/)]],
   });
 
   ngOnInit(): void {
@@ -179,7 +190,13 @@ export class CompanyFormComponent implements OnInit {
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const file = input.files?.[0] ?? null;
+    if (input.files?.length) {
+      this.imageChangedEvent.set(event);
+    }
+  }
+
+  onImageCropped(file: File | null): void {
+    this.imageChangedEvent.set('');
     this.selectedFile.set(file);
 
     if (this.photoPreviewUrl()) {
@@ -190,6 +207,16 @@ export class CompanyFormComponent implements OnInit {
     } else {
       this.photoPreviewUrl.set(null);
     }
+    
+    // Attempt to reset the input value so the same file can be selected again
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    if (input) input.value = '';
+  }
+
+  cancelCrop(): void {
+    this.imageChangedEvent.set('');
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    if (input) input.value = '';
   }
 
   loadUsers(): void {

@@ -121,7 +121,7 @@ export interface Truck {
                   <td>{{ t.company?.businessName ?? '—' }}</td>
                   <td>
                     @if (t.driver?.user?.name || t.driver?.name) {
-                      {{ t.driver?.user?.name || t.driver?.name }}
+                      {{ t.driver!.user?.name || t.driver!.name }}
                     } @else {
                       <span class="badge-status badge-offline" style="font-size: 11px; padding: 2px 8px;">Sin asignar</span>
                     }
