@@ -1,13 +1,15 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, AfterViewInit, ElementRef, ViewChild, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ClientService } from '../../services/client.service';
+import { OrderService } from '../../../company/services/order.service';
 import { InteractionService } from '../../../../shared/service/interaction.service';
 import { ClientOrder, OrderPaginator, Company, OrderDetailDraft, PACKAGING_TYPES } from '../../interface/client.interface';
-import { forkJoin } from 'rxjs';
+import { forkJoin, Subscription, interval } from 'rxjs';
+import * as L from 'leaflet';
 
-type StatusKey = 'pendiente' | 'completada' | 'cancelada' | 'en_proceso' | 'confirmado' | 'completado';
+type StatusKey = 'pendiente' | 'entregado' | 'cancelado' | 'en_transito' | 'confirmado';
 
 @Component({
   selector: 'app-client-orders',
@@ -343,9 +345,9 @@ type StatusKey = 'pendiente' | 'completada' | 'cancelada' | 'en_proceso' | 'conf
                     }
                   } @else {
                     <p class="detail-no-items">
-                      <i class="fa-solid fa-inbox"></i>
-                      Este pedido no cuenta con detalles de carga.
-                    </p>
+                        <i class="fa-solid fa-inbox"></i>
+                        Este pedido no cuenta con detalles de carga.
+                      </p>
                   }
                 </div>
               </div>
@@ -353,20 +355,75 @@ type StatusKey = 'pendiente' | 'completada' | 'cancelada' | 'en_proceso' | 'conf
 
             <!-- Footer -->
             <div class="detail-modal-footer">
+              <!-- Botón de tracking solo si la orden está en_transito -->
+              @if (selectedOrderDetail()!.status === 'en_transito') {
+                <button class="btn-track-order" (click)="openTrackingModal(selectedOrderDetail()!)">
+                  <i class="fa-solid fa-location-crosshairs"></i>
+                  Seguir Pedido en Vivo
+                </button>
+              }
               <button class="btn-confirm" (click)="closeDetailModal()">
                 Entendido
               </button>
             </div>
           </div>
         }
+
+      <!-- ═══════════ TRACKING MODAL ═══════════ -->
+      @if (showTrackingModal()) {
+        <div class="custom-modal-overlay" (click)="closeTrackingModal()"></div>
+        <div class="custom-modal custom-modal--tracking">
+          <!-- Header -->
+          <div class="tracking-modal-header">
+            <div class="tracking-header-info">
+              <div class="tracking-live-badge">
+                <span class="tracking-live-dot"></span>
+                EN VIVO
+              </div>
+              <h2>Seguimiento del Pedido #{{ trackingOrder()?.idOrder }}</h2>
+              <p class="tracking-subtitle">La ubicación del conductor se actualiza automáticamente cada 15 segundos</p>
+            </div>
+            <button class="btn-close-modal" (click)="closeTrackingModal()">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <!-- Mapa -->
+          <div class="tracking-map-container">
+            <div id="tracking-map" class="tracking-map"></div>
+
+            <!-- Info del conductor -->
+            @if (trackingLocation()) {
+              <div class="tracking-info-bar">
+                <div class="tracking-info-item">
+                  <i class="fa-solid fa-truck"></i>
+                  <span>Conductor en camino</span>
+                </div>
+                <div class="tracking-info-item">
+                  <i class="fa-regular fa-clock"></i>
+                  <span>Última actualización: {{ lastTrackingUpdate() }}</span>
+                </div>
+              </div>
+            } @else {
+              <div class="tracking-no-location">
+                <i class="fa-solid fa-satellite-dish"></i>
+                <p>Esperando ubicación del conductor...</p>
+                <small>El conductor debe iniciar el viaje para compartir su ubicación</small>
+              </div>
+            }
+          </div>
+        </div>
+      }
     </div>
   `,
   styleUrl: './client-orders.component.css'
 })
-export class ClientOrdersComponent implements OnInit {
+export class ClientOrdersComponent implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly clientService = inject(ClientService);
+  private readonly orderService = inject(OrderService);
   private readonly ui = inject(InteractionService);
+  private readonly ngZone = inject(NgZone);
 
   // Detail modal state
   readonly showDetailModal = signal(false);
@@ -394,9 +451,29 @@ export class ClientOrdersComponent implements OnInit {
   perPage = 10;
   currentPage = 1;
 
+  // ── Tracking state ──
+  readonly showTrackingModal = signal(false);
+  readonly trackingOrder = signal<ClientOrder | null>(null);
+  readonly trackingLocation = signal<{ latitude: number; longitude: number } | null>(null);
+  readonly lastTrackingUpdate = signal<string>('--');
+  private trackingMap: L.Map | null = null;
+  private driverMarker: L.Marker | null = null;
+  private destinationMarker: L.Marker | null = null;
+  private trackingPollSub?: Subscription;
+  // Ruta recorrida
+  private routePolyline: L.Polyline | null = null;
+  private routeCoords: L.LatLngExpression[] = [];
+  // Para animación suave
+  private animFrameId: number | null = null;
+  private prevLatLng: L.LatLng | null = null;
+
   ngOnInit(): void {
     this.loadOrders();
     this.loadCompanies();
+  }
+
+  ngOnDestroy(): void {
+    this.destroyTrackingMap();
   }
 
   /* ── Orders ── */
@@ -414,7 +491,17 @@ export class ClientOrdersComponent implements OnInit {
 
   private applyFilterLocal(): void {
     const all = this.allOrders();
-    this.filteredOrders.set(this.activeFilter === 'all' ? all : all.filter(o => o.status === this.activeFilter));
+    if (this.activeFilter === 'all') {
+      this.filteredOrders.set(all);
+    } else if (this.activeFilter === 'pending') {
+      this.filteredOrders.set(all.filter(o => ['pendiente', 'confirmado', 'en_transito'].includes(o.status)));
+    } else if (this.activeFilter === 'completed') {
+      this.filteredOrders.set(all.filter(o => ['entregado'].includes(o.status)));
+    } else if (this.activeFilter === 'cancelled') {
+      this.filteredOrders.set(all.filter(o => o.status === 'cancelado'));
+    } else {
+      this.filteredOrders.set(all.filter(o => o.status === this.activeFilter));
+    }
   }
 
   onPerPageChange(event: Event): void { this.perPage = +(event.target as HTMLSelectElement).value; this.currentPage = 1; this.loadOrders(); }
@@ -422,7 +509,14 @@ export class ClientOrdersComponent implements OnInit {
   rangeStart(): number { const m = this.meta(); return m ? (m.currentPage - 1) * m.perPage + 1 : 0; }
   rangeEnd(): number { const m = this.meta(); return m ? Math.min(m.currentPage * m.perPage, m.total) : 0; }
   statusLabel(status: string): string {
-    const map: Record<string, string> = { pendiente: 'Pendiente', completada: 'Completada', cancelada: 'Cancelada', en_proceso: 'En proceso', confirmado: 'Confirmado', completado: 'Completado' };
+    const map: Record<string, string> = { 
+        pendiente: 'Pendiente', 
+        entregado: 'Entregado', 
+        cancelado: 'Cancelado', 
+        en_transito: 'En tránsito', 
+        confirmado: 'Confirmado', 
+        completado: 'Completado' 
+    };
     return map[status] ?? status;
   }
 
@@ -566,5 +660,201 @@ export class ClientOrdersComponent implements OnInit {
         this.ui.mostrarError(err);
       },
     });
+  }
+
+  /* ── Tracking ── */
+
+  openTrackingModal(order: ClientOrder): void {
+    this.trackingOrder.set(order);
+    this.showTrackingModal.set(true);
+    // Esperamos al siguiente tick para que el DOM renderice el contenedor del mapa
+    setTimeout(() => this.initTrackingMap(order), 100);
+  }
+
+  closeTrackingModal(): void {
+    this.destroyTrackingMap();
+    this.showTrackingModal.set(false);
+    this.trackingOrder.set(null);
+    this.trackingLocation.set(null);
+    this.lastTrackingUpdate.set('--');
+  }
+
+  private initTrackingMap(order: ClientOrder): void {
+    // Inicializar el mapa Leaflet centrado en Nicaragua por defecto
+    const defaultCenter: L.LatLngExpression = [12.865416, -85.207229];
+
+    this.trackingMap = L.map('tracking-map', {
+      center: defaultCenter,
+      zoom: 14,
+      zoomControl: true,
+    });
+
+    // Capa de mosaicos con apariencia visual de Google Maps (sin API Key)
+    L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+      maxZoom: 20,
+      subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+      attribution: '&copy; Google Maps',
+    }).addTo(this.trackingMap);
+
+    // Inicializar la polyline vacía para trazar la ruta
+    this.routeCoords = [];
+    this.routePolyline = L.polyline([], {
+      color: '#6366f1',
+      weight: 4,
+      opacity: 0.75,
+      dashArray: '8, 6',
+      lineJoin: 'round',
+    }).addTo(this.trackingMap);
+
+    // Cargar la ubicación del conductor de inmediato
+    this.fetchAndUpdateDriverMarker(order.idOrder);
+
+    // Polling cada 10 segundos (reducido de 15s)
+    this.trackingPollSub = interval(10000).subscribe(() => {
+      this.fetchAndUpdateDriverMarker(order.idOrder);
+    });
+  }
+
+  /** Interpola suavemente el marcador desde prevPos hasta newPos en ~600ms */
+  private animateMarkerTo(marker: L.Marker, newLatLng: L.LatLng): void {
+    if (this.animFrameId !== null) {
+      cancelAnimationFrame(this.animFrameId);
+      this.animFrameId = null;
+    }
+
+    const startLatLng = marker.getLatLng();
+    const startTime = performance.now();
+    const duration = 600; // ms
+
+    const step = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const t = Math.min(elapsed / duration, 1);
+      // Easing suave (ease-out)
+      const eased = 1 - Math.pow(1 - t, 3);
+
+      const lat = startLatLng.lat + (newLatLng.lat - startLatLng.lat) * eased;
+      const lng = startLatLng.lng + (newLatLng.lng - startLatLng.lng) * eased;
+
+      marker.setLatLng([lat, lng]);
+
+      if (t < 1) {
+        this.animFrameId = requestAnimationFrame(step);
+      } else {
+        this.animFrameId = null;
+      }
+    };
+
+    this.animFrameId = requestAnimationFrame(step);
+  }
+
+  private fetchAndUpdateDriverMarker(idOrder: number): void {
+    this.orderService.getOrderLocation(idOrder).subscribe({
+      next: (tracking) => {
+        this.ngZone.run(() => {
+          const lat = parseFloat(tracking.latitude);
+          const lng = parseFloat(tracking.longitude);
+          this.trackingLocation.set({ latitude: lat, longitude: lng });
+
+          const now = new Date();
+          this.lastTrackingUpdate.set(
+            now.toLocaleTimeString('es-NI', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+          );
+
+          if (!this.trackingMap) return;
+
+          const newLatLng = L.latLng(lat, lng);
+
+          // Agregar punto a la ruta recorrida
+          // Bug #1 fix: routeCoords guarda arrays [lat, lng], acceder con índice directo
+          const lastCoord = this.routeCoords[this.routeCoords.length - 1] as [number, number] | undefined;
+          const isDifferent = !lastCoord ||
+            Math.abs(lastCoord[0] - lat) > 0.00001 ||
+            Math.abs(lastCoord[1] - lng) > 0.00001;
+
+          if (isDifferent) {
+            this.routeCoords.push([lat, lng]);
+            this.routePolyline?.setLatLngs(this.routeCoords);
+          }
+
+          // Ícono del camión con anillo de pulso animado
+          const truckIcon = L.divIcon({
+            className: '',
+            html: `
+              <div style="position: relative; width: 52px; height: 52px;">
+                <div style="
+                  position: absolute; inset: 0;
+                  border-radius: 50%;
+                  background: rgba(99,102,241,0.25);
+                  animation: truck-ring 2s ease-out infinite;
+                "></div>
+                <div style="
+                  position: absolute; inset: 5px;
+                  background: linear-gradient(135deg, #3d39af, #6366f1);
+                  border-radius: 50%;
+                  display: flex; align-items: center; justify-content: center;
+                  box-shadow: 0 4px 14px rgba(61,57,175,0.6);
+                  border: 3px solid white;
+                  font-size: 20px;
+                ">🚛</div>
+              </div>`,
+            iconSize: [52, 52],
+            iconAnchor: [26, 26],
+            popupAnchor: [0, -26],
+          });
+
+          if (this.driverMarker) {
+            // Mover el marcador de forma animada y suave
+            this.animateMarkerTo(this.driverMarker, newLatLng);
+            // Bug #3 fix: actualizar el ícono en cada ciclo para mantener la animación
+            this.driverMarker.setIcon(truckIcon);
+          } else {
+            // Crear el marcador del conductor por primera vez
+            this.driverMarker = L.marker(newLatLng, { icon: truckIcon })
+              .addTo(this.trackingMap)
+              .bindPopup('<strong>🚛 Conductor</strong><br>Ubicación en tiempo real');
+            // Primer punto de la ruta
+            this.routeCoords.push([lat, lng]);
+            this.routePolyline?.setLatLngs(this.routeCoords);
+          }
+
+          // Seguir al conductor en el mapa suavemente
+          this.trackingMap.panTo(newLatLng, { animate: true, duration: 0.8 });
+        });
+      },
+      error: () => {
+        // No hay ubicación disponible todavía, no hacemos nada
+      },
+    });
+  }
+
+  private destroyTrackingMap(): void {
+    this.trackingPollSub?.unsubscribe();
+    this.trackingPollSub = undefined;
+
+    // Cancelar animación pendiente
+    if (this.animFrameId !== null) {
+      cancelAnimationFrame(this.animFrameId);
+      this.animFrameId = null;
+    }
+
+    if (this.driverMarker) {
+      this.driverMarker.remove();
+      this.driverMarker = null;
+    }
+    if (this.destinationMarker) {
+      this.destinationMarker.remove();
+      this.destinationMarker = null;
+    }
+    if (this.routePolyline) {
+      this.routePolyline.remove();
+      this.routePolyline = null;
+    }
+    if (this.trackingMap) {
+      this.trackingMap.remove();
+      this.trackingMap = null;
+    }
+    // Reset estado de ruta
+    this.routeCoords = [];
+    this.prevLatLng = null;
   }
 }

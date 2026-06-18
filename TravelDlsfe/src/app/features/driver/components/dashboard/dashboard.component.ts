@@ -1,6 +1,9 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
+import { OrderService } from '../../../company/services/order.service';
+import { HttpParams } from '@angular/common/http';
 
 interface StatCard {
   label: string;
@@ -13,7 +16,7 @@ interface StatCard {
 @Component({
   selector: 'app-driver-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   providers: [DatePipe],
   template: `
     <div class="dashboard">
@@ -41,11 +44,41 @@ interface StatCard {
       <div class="recent-trips">
         <div class="section-header">
           <h2>Viajes recientes</h2>
-          <a href="#" class="view-all">Ver todos ></a>
+          <a [routerLink]="['/driver/trips']" class="view-all">Ver todos ></a>
         </div>
-        <div class="empty-state">
-          No hay viajes registrados.
-        </div>
+        
+        @if (loadingTrips()) {
+          <div class="empty-state">
+            <i class="fa-solid fa-spinner fa-spin" style="margin-right: 8px;"></i> Cargando viajes…
+          </div>
+        } @else if (recentTrips().length === 0) {
+          <div class="empty-state">
+            No hay viajes registrados.
+          </div>
+        } @else {
+          <div class="trips-list">
+            @for (trip of recentTrips(); track trip.idOrder) {
+              <div class="trip-row">
+                <div class="trip-main">
+                  <span class="trip-badge">#{{ trip.idOrder }}</span>
+                  <div class="trip-details">
+                    <p class="trip-client">{{ trip.client?.companyName || trip.client?.user?.name || 'Cliente #' + trip.idClient }}</p>
+                    <p class="trip-desc">{{ trip.details?.[0]?.cargoDescription || 'Sin descripción' }}</p>
+                  </div>
+                </div>
+                <div class="trip-dest">
+                  <i class="fa-solid fa-location-dot"></i>
+                  <span>{{ trip.client?.address || trip.details?.[0]?.deliveryAddress || 'Sin dirección' }}</span>
+                </div>
+                <div class="trip-status">
+                  <span class="status-chip status-{{ trip.status }}">
+                    {{ statusLabel(trip.status) }}
+                  </span>
+                </div>
+              </div>
+            }
+          </div>
+        }
       </div>
     </div>
   `,
@@ -160,11 +193,118 @@ interface StatCard {
       font-size: 14px;
       height: 100px;
     }
+
+    .trips-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .trip-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px;
+      background: #f8fafc;
+      border-radius: 12px;
+      border: 1px solid #f1f5f9;
+      transition: all 0.2s;
+    }
+
+    .trip-row:hover {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+    }
+
+    .trip-main {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .trip-badge {
+      font-size: 12px;
+      font-weight: 700;
+      color: #3d39af;
+      background: #ede9fe;
+      padding: 6px 10px;
+      border-radius: 8px;
+    }
+
+    .trip-details {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .trip-client {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: #1e293b;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .trip-desc {
+      margin: 2px 0 0;
+      font-size: 12px;
+      color: #64748b;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .trip-dest {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: #475569;
+      flex: 1;
+      padding: 0 16px;
+      min-width: 0;
+    }
+
+    .trip-dest i {
+      color: #94a3b8;
+      flex-shrink: 0;
+    }
+
+    .trip-dest span {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .trip-status {
+      flex-shrink: 0;
+    }
+
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .status-pendiente { background: #fef3c7; color: #b45309; }
+    .status-en_transito { background: #dbeafe; color: #1d4ed8; }
+    .status-entregado { background: #dcfce7; color: #166534; }
+    .status-confirmado { background: #e0e7ff; color: #3730a3; }
+    .status-cancelado { background: #fee2e2; color: #b91c1c; }
   `]
 })
 export class DriverDashboardComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly datePipe = inject(DatePipe);
+  private readonly orderService = inject(OrderService);
 
   readonly user = this.auth.user;
   readonly firstName = signal<string>('Usuario');
@@ -172,11 +312,13 @@ export class DriverDashboardComponent implements OnInit {
   // IMPORTANTE: Se ha omitido la tarjeta de 'En curso' de las estadísticas.
   readonly stats = signal<StatCard[]>([
     { label: 'Total viajes', value: 0, icon: 'fa-solid fa-truck-moving', color: '#6366f1', bg: '#ede9fe' },
-    { label: 'Completados', value: 0, icon: 'fa-regular fa-circle-check', color: '#10b981', bg: '#d1fae5' },
+    { label: 'Entregados', value: 0, icon: 'fa-regular fa-circle-check', color: '#10b981', bg: '#d1fae5' },
     { label: 'Pendientes', value: 0, icon: 'fa-regular fa-clock', color: '#f59e0b', bg: '#fef3c7' },
   ]);
 
   currentDate = '';
+  readonly recentTrips = signal<any[]>([]);
+  readonly loadingTrips = signal<boolean>(true);
 
   ngOnInit(): void {
     const today = new Date();
@@ -187,5 +329,51 @@ export class DriverDashboardComponent implements OnInit {
       const nameParts = this.user()!.name.split(' ');
       this.firstName.set(nameParts[0]);
     }
+
+    this.loadStats();
+  }
+
+  loadStats(): void {
+    const user = this.user();
+    if (!user || !user.idDriver) {
+      this.loadingTrips.set(false);
+      return;
+    }
+
+    this.loadingTrips.set(true);
+    const params = new HttpParams().set('idDriver', user.idDriver).set('perPage', 50);
+    this.orderService.getOrders(params).subscribe({
+      next: (res) => {
+        const orders = res.data || [];
+        const total = orders.length;
+        const entregados = orders.filter((o: any) => o.status === 'entregado').length;
+        const pendientes = orders.filter((o: any) => ['pendiente', 'confirmado', 'en_transito'].includes(o.status)).length;
+        
+        this.stats.set([
+          { label: 'Total viajes', value: total, icon: 'fa-solid fa-truck-moving', color: '#6366f1', bg: '#ede9fe' },
+          { label: 'Entregados', value: entregados, icon: 'fa-regular fa-circle-check', color: '#10b981', bg: '#d1fae5' },
+          { label: 'Pendientes', value: pendientes, icon: 'fa-regular fa-clock', color: '#f59e0b', bg: '#fef3c7' },
+        ]);
+
+        // Mostrar los últimos 5 viajes
+        this.recentTrips.set(orders.slice(0, 5));
+        this.loadingTrips.set(false);
+      },
+      error: (err) => {
+        console.error('Error cargando stats', err);
+        this.loadingTrips.set(false);
+      }
+    });
+  }
+
+  statusLabel(status: string): string {
+    const map: Record<string, string> = {
+      pendiente: 'Pendiente',
+      confirmado: 'Confirmado',
+      en_transito: 'En tránsito',
+      entregado: 'Entregado',
+      cancelado: 'Cancelado',
+    };
+    return map[status] ?? status;
   }
 }

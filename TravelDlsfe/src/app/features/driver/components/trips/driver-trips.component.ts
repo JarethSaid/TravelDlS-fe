@@ -19,21 +19,9 @@ import { interval, Subscription, switchMap, startWith } from 'rxjs';
       <!-- Filtros -->
       <div class="filters-bar">
         <div class="filter-tabs">
-          <button
-            class="tab"
-            [class.tab--active]="activeFilter() === 'all'"
-            (click)="setFilter('all')"
-          >Todos</button>
-          <button
-            class="tab"
-            [class.tab--active]="activeFilter() === 'pending'"
-            (click)="setFilter('pending')"
-          >Pendientes</button>
-          <button
-            class="tab"
-            [class.tab--active]="activeFilter() === 'completed'"
-            (click)="setFilter('completed')"
-          >Completados</button>
+          <button class="tab" [class.tab--active]="activeFilter() === 'all'" (click)="setFilter('all')">Todos</button>
+          <button class="tab" [class.tab--active]="activeFilter() === 'pending'" (click)="setFilter('pending')">Pendientes</button>
+          <button class="tab" [class.tab--active]="activeFilter() === 'completed'" (click)="setFilter('completed')">Completados</button>
         </div>
       </div>
 
@@ -43,48 +31,91 @@ import { interval, Subscription, switchMap, startWith } from 'rxjs';
           <h3>Cargando viajes…</h3>
         </div>
       } @else if (filteredTrips().length === 0) {
-        <!-- Empty state -->
         <div class="empty-card">
-          <div class="empty-icon">
-            <i class="fa-solid fa-route"></i>
-          </div>
+          <div class="empty-icon"><i class="fa-solid fa-route"></i></div>
           <h3>No hay viajes registrados</h3>
           <p>Cuando te asignen viajes, aparecerán aquí para que puedas darles seguimiento.</p>
         </div>
       } @else {
         <div class="table-card">
           <div class="table-wrapper">
-            <table class="orders-table" style="width: 100%; border-collapse: collapse;">
+            <table class="orders-table">
               <thead>
-                <tr style="border-bottom: 1px solid #e2e8f0; text-align: left; background: #f8fafc;">
-                  <th style="padding: 12px 16px; color: #475569; font-size: 13px;"># Viaje</th>
-                  <th style="padding: 12px 16px; color: #475569; font-size: 13px;">Cliente</th>
-                  <th style="padding: 12px 16px; color: #475569; font-size: 13px;">Carga</th>
-                  <th style="padding: 12px 16px; color: #475569; font-size: 13px;">Dirección</th>
+                <tr>
+                  <th># Viaje</th>
+                  <th>Cliente</th>
+                  <th>Carga</th>
+                  <th>Dirección</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 @for (trip of filteredTrips(); track trip.idOrder) {
-                  <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.2s;">
-                    <td style="padding: 16px; font-weight: 600; color: #0f172a;">#{{ trip.idOrder }}</td>
-                    <td style="padding: 16px;">
-                      <div style="color: #334155; font-weight: 500;">{{ trip.client?.companyName || trip.client?.user?.name || 'Cliente #' + trip.idClient }}</div>
+                  <tr>
+                    <td class="trip-id">#{{ trip.idOrder }}</td>
+                    <td>
+                      <div class="trip-client">{{ trip.client?.companyName || trip.client?.user?.name || 'Cliente #' + trip.idClient }}</div>
                     </td>
-                    <td style="padding: 16px;">
-                      <div style="font-size: 13px; color: #334155; font-weight: 500;">{{ trip.details?.[0]?.cargoDescription || 'Sin descripción' }}</div>
-                      <div style="font-size: 12px; color: #64748b; margin-top: 2px;">
+                    <td>
+                      <div class="trip-cargo">{{ trip.details?.[0]?.cargoDescription || 'Sin descripción' }}</div>
+                      <div class="trip-cargo-meta">
                         @if (trip.details?.[0]) {
                           {{ trip.details[0].amount }}x {{ trip.details[0].typePackaging }} ({{ trip.details[0].unitWeight }})
                         }
                       </div>
                     </td>
-                    <td style="padding: 16px; color: #64748b; font-size: 13px; max-width: 200px;">
-                      <div style="display: flex; align-items: flex-start; gap: 6px;" [title]="trip.client?.address || trip.details?.[0]?.deliveryAddress || 'Sin dirección'">
-                        <i class="fa-solid fa-location-dot" style="color: #cbd5e1; margin-top: 2px;"></i>
-                        <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                          {{ trip.client?.address || trip.details?.[0]?.deliveryAddress || 'Sin dirección' }}
-                        </span>
+                    <td>
+                      <div class="trip-address" [title]="trip.client?.address || trip.details?.[0]?.deliveryAddress || 'Sin dirección'">
+                        <i class="fa-solid fa-location-dot"></i>
+                        <span>{{ trip.client?.address || trip.details?.[0]?.deliveryAddress || 'Sin dirección' }}</span>
                       </div>
+                    </td>
+                    <td>
+                      <span class="status-chip" [class]="'status-chip status-' + trip.status">
+                        {{ statusLabel(trip.status) }}
+                      </span>
+                    </td>
+                    <td>
+                      <!-- Botón Iniciar Viaje (solo si está en estado confirmado o pendiente) -->
+                      @if (trip.status === 'confirmado' || trip.status === 'pendiente') {
+                        <button
+                          class="btn-start-trip"
+                          (click)="startTrip(trip)"
+                          [disabled]="actionLoading() === trip.idOrder"
+                        >
+                          @if (actionLoading() === trip.idOrder) {
+                            <i class="fa-solid fa-spinner fa-spin"></i>
+                          } @else {
+                            <i class="fa-solid fa-play"></i>
+                          }
+                          Iniciar Viaje
+                        </button>
+                      }
+
+                      <!-- Botón Finalizar Viaje (solo si está en_transito y es el viaje activo con GPS) -->
+                      @if (trip.status === 'en_transito') {
+                        <button
+                          class="btn-end-trip"
+                          (click)="endTrip(trip)"
+                          [disabled]="actionLoading() === trip.idOrder"
+                        >
+                          @if (actionLoading() === trip.idOrder) {
+                            <i class="fa-solid fa-spinner fa-spin"></i>
+                          } @else {
+                            <i class="fa-solid fa-flag-checkered"></i>
+                          }
+                          Finalizar Viaje
+                        </button>
+
+                        <!-- Indicador de GPS activo -->
+                        @if (activeTrackingOrderId() === trip.idOrder) {
+                          <div class="gps-indicator">
+                            <span class="gps-dot"></span>
+                            GPS Activo
+                          </div>
+                        }
+                      }
                     </td>
                   </tr>
                 }
@@ -142,15 +173,8 @@ import { interval, Subscription, switchMap, startWith } from 'rxjs';
       font-family: inherit;
     }
 
-    .tab:hover {
-      color: #1e293b;
-      background: #f1f5f9;
-    }
-
-    .tab--active {
-      background: #3d39af !important;
-      color: white !important;
-    }
+    .tab:hover { color: #1e293b; background: #f1f5f9; }
+    .tab--active { background: #3d39af !important; color: white !important; }
 
     .empty-card {
       background: white;
@@ -176,70 +200,192 @@ import { interval, Subscription, switchMap, startWith } from 'rxjs';
       margin-bottom: 20px;
     }
 
-    .empty-card h3 {
-      margin: 0 0 8px;
-      font-size: 18px;
-      font-weight: 700;
-      color: #1e293b;
-    }
+    .empty-card h3 { margin: 0 0 8px; font-size: 18px; font-weight: 700; color: #1e293b; }
+    .empty-card p { margin: 0; font-size: 14px; color: #94a3b8; max-width: 360px; line-height: 1.6; }
 
-    .empty-card p {
-      margin: 0;
-      font-size: 14px;
-      color: #94a3b8;
-      max-width: 360px;
-      line-height: 1.6;
-    }
-    
     .table-card {
       background: white;
       border-radius: 16px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
       border: 1px solid #f1f5f9;
       overflow: hidden;
     }
-    
+
+    .table-wrapper { overflow-x: auto; }
+
+    .orders-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .orders-table thead tr {
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .orders-table th {
+      padding: 12px 16px;
+      color: #475569;
+      font-size: 13px;
+      font-weight: 600;
+      text-align: left;
+    }
+
+    .orders-table tbody tr {
+      border-bottom: 1px solid #f1f5f9;
+      transition: background 0.15s;
+    }
+
+    .orders-table tbody tr:hover { background: #f8fafc; }
+    .orders-table td { padding: 14px 16px; }
+
+    .trip-id { font-weight: 700; color: #0f172a; font-size: 14px; }
+    .trip-client { color: #334155; font-weight: 500; font-size: 14px; }
+    .trip-cargo { font-size: 13px; color: #334155; font-weight: 500; }
+    .trip-cargo-meta { font-size: 12px; color: #64748b; margin-top: 2px; }
+
+    .trip-address {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      color: #64748b;
+      font-size: 13px;
+      max-width: 200px;
+    }
+
+    .trip-address i { color: #cbd5e1; margin-top: 2px; flex-shrink: 0; }
+    .trip-address span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
     .status-pendiente { background: #fef3c7; color: #b45309; }
-    .status-en_proceso { background: #dbeafe; color: #1d4ed8; }
-    .status-completado { background: #dcfce3; color: #166534; }
+    .status-en_transito { background: #dbeafe; color: #1d4ed8; }
+    .status-entregado { background: #dcfce7; color: #166534; }
     .status-confirmado { background: #e0e7ff; color: #3730a3; }
     .status-cancelado { background: #fee2e2; color: #b91c1c; }
+
+    .btn-start-trip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border: none;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: white;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+      box-shadow: 0 2px 6px rgba(34,197,94,0.35);
+    }
+
+    .btn-start-trip:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(34,197,94,0.4); }
+    .btn-start-trip:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    .btn-end-trip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border: none;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      color: white;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+      box-shadow: 0 2px 6px rgba(239,68,68,0.35);
+    }
+
+    .btn-end-trip:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(239,68,68,0.4); }
+    .btn-end-trip:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    .gps-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+      padding: 4px 10px;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 20px;
+      color: #16a34a;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .gps-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      animation: pulse-gps 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse-gps {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
   `]
 })
 export class DriverTripsComponent implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly orderService = inject(OrderService);
-  
+
   activeFilter = signal('all');
   trips = signal<any[]>([]);
   filteredTrips = signal<any[]>([]);
   loading = signal(true);
+  actionLoading = signal<number | null>(null);
+  activeTrackingOrderId = signal<number | null>(null);
+
   private pollSub?: Subscription;
+  private locationWatchId: number | null = null;
+  private locationIntervalSub?: Subscription;
+  private currentCoords: { lat: number; lng: number } | null = null;
 
   ngOnInit(): void {
     this.startPolling();
   }
 
+  /** Calcula la distancia en metros entre dos coordenadas (fórmula de Haversine simplificada) */
+  private distanceMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
+    const R = 6371000;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
   ngOnDestroy(): void {
-    if (this.pollSub) {
-      this.pollSub.unsubscribe();
-    }
+    this.pollSub?.unsubscribe();
+    this.stopGeolocation();
   }
 
   startPolling(): void {
     const user = this.auth.user();
-    if (!user?.idDriver) {
-      this.loading.set(false);
-      return;
-    }
-    
-    // Poll every 10 seconds to get immediate assignments
+    if (!user?.idDriver) { this.loading.set(false); return; }
+
     this.pollSub = interval(10000).pipe(
       startWith(0),
       switchMap(() => {
-        let p = new HttpParams()
+        const p = new HttpParams()
           .set('idDriver', user.idDriver!)
-          .set('perPage', 50); // Get latest trips
+          .set('perPage', 50);
         return this.orderService.getOrders(p);
       })
     ).subscribe({
@@ -247,11 +393,17 @@ export class DriverTripsComponent implements OnInit, OnDestroy {
         this.trips.set(res.data || []);
         this.applyFilter();
         this.loading.set(false);
+
+        // Reanudar GPS automáticamente si hay un viaje en tránsito y el GPS no está activo
+        if (this.activeTrackingOrderId() === null) {
+          const activeTrip = (res.data || []).find((t: any) => t.status === 'en_transito');
+          if (activeTrip) {
+            console.log('[Tracking] Reanudando GPS para viaje en tránsito:', activeTrip.idOrder);
+            this.startGeolocation(activeTrip.idOrder);
+          }
+        }
       },
-      error: (err) => {
-        console.error('Error fetching trips:', err);
-        this.loading.set(false);
-      }
+      error: () => this.loading.set(false),
     });
   }
 
@@ -263,23 +415,134 @@ export class DriverTripsComponent implements OnInit, OnDestroy {
   applyFilter(): void {
     const all = this.trips();
     const filter = this.activeFilter();
-    
     if (filter === 'all') {
       this.filteredTrips.set(all);
     } else if (filter === 'pending') {
-      this.filteredTrips.set(all.filter(t => t.status === 'pendiente' || t.status === 'confirmado' || t.status === 'en_transito' || t.status === 'en_proceso'));
+      this.filteredTrips.set(all.filter(t =>
+        ['pendiente', 'confirmado', 'en_transito'].includes(t.status)
+      ));
     } else if (filter === 'completed') {
-      this.filteredTrips.set(all.filter(t => t.status === 'completado' || t.status === 'entregado'));
+      this.filteredTrips.set(all.filter(t =>
+        ['entregado'].includes(t.status)
+      ));
     }
+  }
+
+  /** Inicia el viaje: cambia estado a en_transito y activa el GPS */
+  startTrip(trip: any): void {
+    this.actionLoading.set(trip.idOrder);
+    this.orderService.updateOrderStatus(trip.idOrder, 'en_transito').subscribe({
+      next: () => {
+        trip.status = 'en_transito';
+        this.trips.update(list => [...list]);
+        this.applyFilter();
+        this.actionLoading.set(null);
+        this.startGeolocation(trip.idOrder);
+      },
+      error: () => this.actionLoading.set(null),
+    });
+  }
+
+  /** Finaliza el viaje: detiene el GPS y cambia estado a entregado */
+  endTrip(trip: any): void {
+    this.actionLoading.set(trip.idOrder);
+    this.orderService.updateOrderStatus(trip.idOrder, 'entregado').subscribe({
+      next: () => {
+        trip.status = 'entregado';
+        this.trips.update(list => [...list]);
+        this.applyFilter();
+        this.actionLoading.set(null);
+        this.stopGeolocation();
+      },
+      error: () => this.actionLoading.set(null),
+    });
+  }
+
+  /** Activa el GPS del dispositivo y envía las coordenadas al backend */
+  private startGeolocation(idOrder: number): void {
+    if (!navigator.geolocation) {
+      console.warn('[Tracking] La geolocalización no está disponible en este dispositivo.');
+      return;
+    }
+
+    this.activeTrackingOrderId.set(idOrder);
+
+    // Obtener la posición actual continuamente
+    this.locationWatchId = navigator.geolocation.watchPosition(
+      (position) => {
+        const newLat = position.coords.latitude;
+        const newLng = position.coords.longitude;
+
+        if (!this.currentCoords) {
+          // Bug #2 fix: primera posición — enviar inmediatamente sin esperar el heartbeat
+          this.currentCoords = { lat: newLat, lng: newLng };
+          this.orderService
+            .updateOrderLocation(idOrder, newLat, newLng)
+            .subscribe({ error: (e) => console.error('[Tracking] Error al enviar primera ubicación:', e) });
+        } else {
+          // Si el conductor se movió más de 10 metros, enviar inmediatamente
+          const dist = this.distanceMeters(
+            this.currentCoords.lat, this.currentCoords.lng,
+            newLat, newLng
+          );
+          if (dist >= 10) {
+            this.orderService
+              .updateOrderLocation(idOrder, newLat, newLng)
+              .subscribe({ error: (e) => console.error('[Tracking] Error al enviar ubicación por movimiento:', e) });
+          }
+          this.currentCoords = { lat: newLat, lng: newLng };
+        }
+      },
+      (err) => console.error('[Tracking] Error GPS:', err),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+
+    // Coordenada base simulada (cerca de Managua/Nicaragua) por si falla el GPS real
+    let simulatedLat = 12.1328;
+    let simulatedLng = -86.2504;
+
+    // Heartbeat: enviar coordenadas cada 15 segundos aunque no haya movimiento
+    this.locationIntervalSub = interval(15000).subscribe(() => {
+      let latToSend: number;
+      let lngToSend: number;
+
+      if (this.currentCoords) {
+        latToSend = this.currentCoords.lat;
+        lngToSend = this.currentCoords.lng;
+      } else {
+        // Modo simulación: Mover ligeramente el camión
+        simulatedLat += 0.0001;
+        simulatedLng += 0.0001;
+        latToSend = simulatedLat;
+        lngToSend = simulatedLng;
+        console.warn('[Tracking] Usando GPS simulado porque no hay posición real aún.');
+      }
+
+      this.orderService
+        .updateOrderLocation(idOrder, latToSend, lngToSend)
+        .subscribe({ error: (e) => console.error('[Tracking] Error al enviar ubicación (heartbeat):', e) });
+    });
+  }
+
+  /** Detiene el GPS y limpia los intervalos */
+  private stopGeolocation(): void {
+    if (this.locationWatchId !== null) {
+      navigator.geolocation.clearWatch(this.locationWatchId);
+      this.locationWatchId = null;
+    }
+    this.locationIntervalSub?.unsubscribe();
+    this.locationIntervalSub = undefined;
+    this.currentCoords = null;
+    this.activeTrackingOrderId.set(null);
   }
 
   statusLabel(status: string): string {
     const map: Record<string, string> = {
-      pendiente:  'Pendiente',
+      pendiente: 'Pendiente',
       confirmado: 'Confirmado',
-      en_proceso: 'En proceso',
-      completado: 'Completado',
-      cancelado:  'Cancelado',
+      en_transito: 'En tránsito',
+      entregado: 'Entregado',
+      cancelado: 'Cancelado',
     };
     return map[status] ?? status;
   }
