@@ -361,9 +361,9 @@
 }
 
 .status-pendiente { background: #fef3c7; color: #d97706; }
-.status-completada { background: #dcfce7; color: #16a34a; }
-.status-cancelada { background: #fee2e2; color: #dc2626; }
-.status-en_proceso { background: #dbeafe; color: #2563eb; }
+.status-entregado { background: #dcfce7; color: #16a34a; }
+.status-cancelado { background: #fee2e2; color: #dc2626; }
+.status-en_transito { background: #dbeafe; color: #2563eb; }
 
 /* ══ Pagination ══ */
 .pagination-bar {
@@ -1147,4 +1147,207 @@
   .detail-item-tags {
     gap: 6px;
   }
+}
+
+/* ══════════════════════════════════════════════════
+   Tracking Modal Styles
+   ══════════════════════════════════════════════════ */
+
+.custom-modal--tracking {
+  max-width: 860px;
+  max-height: 92vh;
+  width: 94vw;
+  padding: 0;
+  overflow: hidden;
+}
+
+.tracking-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  background: linear-gradient(135deg, #1e1b4b, #3d39af);
+  gap: 16px;
+}
+
+.tracking-header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tracking-modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: white;
+}
+
+.tracking-subtitle {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.tracking-modal-header .btn-close-modal {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: white;
+  flex-shrink: 0;
+}
+
+.tracking-modal-header .btn-close-modal:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: white;
+}
+
+/* Badge "EN VIVO" con punto parpadeante */
+.tracking-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  background: rgba(239, 68, 68, 0.25);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  border-radius: 20px;
+  color: #fca5a5;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  width: fit-content;
+  margin-bottom: 4px;
+}
+
+.tracking-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ef4444;
+  animation: live-blink 1.2s ease-in-out infinite;
+}
+
+@keyframes live-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* Contenedor del mapa */
+.tracking-map-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.tracking-map {
+  width: 100%;
+  height: 500px;
+  background: #e8ecf0;
+}
+
+@media (max-height: 700px) {
+  .tracking-map { height: 340px; }
+}
+
+/* Barra de información debajo del mapa */
+.tracking-info-bar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 14px 20px;
+  background: white;
+  border-top: 1px solid #f1f5f9;
+}
+
+.tracking-info-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #475569;
+  font-weight: 500;
+}
+
+.tracking-info-item i {
+  color: #3d39af;
+  font-size: 14px;
+}
+
+/* Estado sin ubicación aún */
+.tracking-no-location {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.95);
+  border-top: 1px solid #f1f5f9;
+  text-align: center;
+}
+
+.tracking-no-location i {
+  font-size: 24px;
+  color: #94a3b8;
+}
+
+.tracking-no-location p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.tracking-no-location small {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* Botón de tracking en el footer del modal de detalles */
+.btn-track-order {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #3d39af, #6366f1);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s;
+  box-shadow: 0 4px 14px rgba(61, 57, 175, 0.4);
+  font-family: inherit;
+  animation: track-btn-pulse 2.5s ease-in-out infinite;
+}
+
+.btn-track-order:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(61, 57, 175, 0.55);
+}
+
+.btn-track-order i {
+  font-size: 15px;
+}
+
+/* Animación de los marcadores del mapa */
+@keyframes marker-pulse {
+  0%, 100% { box-shadow: 0 4px 14px rgba(61, 57, 175, 0.55); }
+  50% { box-shadow: 0 4px 24px rgba(61, 57, 175, 0.9), 0 0 0 8px rgba(61, 57, 175, 0.15); }
+}
+
+@keyframes track-btn-pulse {
+  0%, 100% { box-shadow: 0 4px 14px rgba(61, 57, 175, 0.4); }
+  50% { box-shadow: 0 4px 22px rgba(61, 57, 175, 0.7); }
+}
+
+/* Anillo de pulso expansivo alrededor del camión en el mapa */
+@keyframes truck-ring {
+  0% { transform: scale(0.8); opacity: 0.9; }
+  70% { transform: scale(2); opacity: 0; }
+  100% { transform: scale(2); opacity: 0; }
 }
