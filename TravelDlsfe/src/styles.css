@@ -315,6 +315,18 @@ body {
   border-color: #ffc9c9;
 }
 
+.badge-esperando {
+  background: #e0f2fe;
+  color: #0ea5e9;
+  border-color: #bae6fd;
+}
+
+.badge-aceptado {
+  background: #dcfce7;
+  color: #16a34a;
+  border-color: #bbf7d0;
+}
+
 /* --- BOTONES ESTÁNDAR --- */
 .btn-resort {
   border: none;

@@ -364,6 +364,9 @@
 .status-completada { background: #dcfce7; color: #16a34a; }
 .status-cancelada { background: #fee2e2; color: #dc2626; }
 .status-en_proceso { background: #dbeafe; color: #2563eb; }
+.status-esperando_aprobacion { background: #e0f2fe; color: #0ea5e9; }
+.status-aceptado { background: #dcfce7; color: #16a34a; }
+.status-denegado { background: #fee2e2; color: #dc2626; }
 
 /* ══ Pagination ══ */
 .pagination-bar {
@@ -1147,4 +1150,91 @@
   .detail-item-tags {
     gap: 6px;
   }
+}
+
+/* ══════════════════════════════════════════════════
+   Price Approval Section
+   ══════════════════════════════════════════════════ */
+.price-approval-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.approval-card {
+  background: #fffbeb;
+  border: 1.5px solid #fde68a;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.approval-card p {
+  margin: 0;
+  font-size: 14px;
+  color: #92400e;
+  line-height: 1.5;
+}
+
+.approval-card strong {
+  font-size: 16px;
+  font-weight: 800;
+  color: #b45309;
+}
+
+.approval-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.btn-deny {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: white;
+  color: #dc2626;
+  border: 1.5px solid #fecaca;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.btn-deny:hover:not(:disabled) {
+  background: #fef2f2;
+  border-color: #f87171;
+}
+
+.btn-accept {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+  font-family: inherit;
+}
+
+.btn-accept:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+}
+
+.btn-deny:disabled, .btn-accept:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }

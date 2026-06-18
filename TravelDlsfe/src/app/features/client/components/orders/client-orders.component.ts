@@ -349,6 +349,24 @@ type StatusKey = 'pendiente' | 'completada' | 'cancelada' | 'en_proceso' | 'conf
                   }
                 </div>
               </div>
+
+              <!-- Price approval section -->
+              @if (selectedOrderDetail()!.status === 'esperando_aprobacion') {
+                <div class="price-approval-section">
+                  <h3 class="detail-section-label" style="color: #d97706; margin-top: 1rem;"><i class="fa-solid fa-triangle-exclamation"></i> PRECIO ASIGNADO PENDIENTE DE APROBACIÓN</h3>
+                  <div class="approval-card">
+                    <p>La empresa ha asignado un precio total de <strong>C$ {{ getOrderTotal(selectedOrderDetail()!) | number:'1.2-2' }}</strong>. ¿Desea aceptar o rechazar esta tarifa?</p>
+                    <div class="approval-actions">
+                      <button class="btn-deny" (click)="respondPrice(false)" [disabled]="isRespondingPrice()">
+                        <i class="fa-solid fa-xmark"></i> Rechazar
+                      </button>
+                      <button class="btn-accept" (click)="respondPrice(true)" [disabled]="isRespondingPrice()">
+                        <i class="fa-solid fa-check"></i> Aceptar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              }
             </div>
 
             <!-- Footer -->
@@ -382,6 +400,7 @@ export class ClientOrdersComponent implements OnInit {
   readonly companies = signal<Company[]>([]);
   readonly selectedCompanyForOrder = signal<Company | null>(null);
   readonly creatingOrder = signal(false);
+  readonly isRespondingPrice = signal(false);
   searchTerm = '';
   private searchTimeout: any;
 
@@ -422,7 +441,17 @@ export class ClientOrdersComponent implements OnInit {
   rangeStart(): number { const m = this.meta(); return m ? (m.currentPage - 1) * m.perPage + 1 : 0; }
   rangeEnd(): number { const m = this.meta(); return m ? Math.min(m.currentPage * m.perPage, m.total) : 0; }
   statusLabel(status: string): string {
-    const map: Record<string, string> = { pendiente: 'Pendiente', completada: 'Completada', cancelada: 'Cancelada', en_proceso: 'En proceso', confirmado: 'Confirmado', completado: 'Completado' };
+    const map: Record<string, string> = { 
+      pendiente: 'Pendiente', 
+      completada: 'Completada', 
+      cancelada: 'Cancelada', 
+      en_proceso: 'En proceso', 
+      confirmado: 'Confirmado', 
+      completado: 'Completado',
+      esperando_aprobacion: 'Esperando Aprobación',
+      aceptado: 'Aceptado',
+      denegado: 'Denegado'
+    };
     return map[status] ?? status;
   }
 
@@ -445,6 +474,25 @@ export class ClientOrdersComponent implements OnInit {
   closeDetailModal(): void {
     this.showDetailModal.set(false);
     this.selectedOrderDetail.set(null);
+  }
+
+  respondPrice(accepted: boolean): void {
+    const order = this.selectedOrderDetail();
+    if (!order) return;
+
+    this.isRespondingPrice.set(true);
+    this.clientService.respondPrice(order.idOrder, { accepted }).subscribe({
+      next: (updatedOrder) => {
+        this.isRespondingPrice.set(false);
+        this.ui.showToast(accepted ? 'Precio aceptado exitosamente' : 'Precio rechazado', 'success');
+        this.closeDetailModal();
+        this.loadOrders();
+      },
+      error: (err) => {
+        this.isRespondingPrice.set(false);
+        this.ui.mostrarError(err);
+      }
+    });
   }
 
   getOrderTotal(order: ClientOrder): number {
