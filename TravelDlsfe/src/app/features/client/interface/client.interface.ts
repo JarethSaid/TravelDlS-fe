@@ -19,6 +19,15 @@ export interface ClientOrder {
   details?: OrderDetail[];
 }
 
+export interface OrderTracking {
+  id: number;
+  orderId: number;
+  latitude: number;
+  longitude: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface OrderDetail {
   idDetails: number;
   idOrder: number;
