@@ -1,11 +1,27 @@
-import { Component, OnInit, OnDestroy, inject, signal, AfterViewInit, ElementRef, ViewChild, NgZone } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  inject,
+  signal,
+  AfterViewInit,
+  ElementRef,
+  ViewChild,
+  NgZone,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ClientService } from '../../services/client.service';
 import { OrderService } from '../../../company/services/order.service';
 import { InteractionService } from '../../../../shared/service/interaction.service';
-import { ClientOrder, OrderPaginator, Company, OrderDetailDraft, PACKAGING_TYPES } from '../../interface/client.interface';
+import {
+  ClientOrder,
+  OrderPaginator,
+  Company,
+  OrderDetailDraft,
+  PACKAGING_TYPES,
+} from '../../interface/client.interface';
 import { forkJoin, Subscription, interval } from 'rxjs';
 import * as L from 'leaflet';
 
@@ -63,7 +79,7 @@ type StatusKey = 'pendiente' | 'entregado' | 'cancelado' | 'en_transito' | 'conf
               <div class="company-card-content">
                 <h3>{{ company.businessName }}</h3>
                 <p class="company-ruc">RUC: {{ company.ruc }}</p>
-                
+
                 <button class="btn-card-action">
                   <i class="fa-solid fa-chevron-right"></i>
                 </button>
@@ -81,26 +97,45 @@ type StatusKey = 'pendiente' | 'entregado' | 'cancelado' | 'en_transito' | 'conf
           <div class="custom-modal-header">
             <div>
               <h2>Crear nueva orden</h2>
-              <p class="modal-subtitle">{{ selectedCompanyForOrder()!.businessName }} · RUC: {{ selectedCompanyForOrder()!.ruc }}</p>
+              <p class="modal-subtitle">
+                {{ selectedCompanyForOrder()!.businessName }} · RUC:
+                {{ selectedCompanyForOrder()!.ruc }}
+              </p>
             </div>
-            <button class="btn-close-modal" (click)="closeOrderModal()"><i class="fa-solid fa-xmark"></i></button>
+            <button class="btn-close-modal" (click)="closeOrderModal()">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
           </div>
 
           <!-- Body -->
           <div class="custom-modal-body modal-body-scroll">
             <!-- ── Formulario de detalle ── -->
             <div class="detail-form-section">
-              <h3 class="section-title"><i class="fa-solid fa-box-open"></i> Agregar detalle de carga</h3>
+              <h3 class="section-title">
+                <i class="fa-solid fa-box-open"></i> Agregar detalle de carga
+              </h3>
 
               <div class="form-grid">
                 <div class="form-group form-group--full">
                   <label for="cargoDesc">Descripción de carga *</label>
-                  <input id="cargoDesc" type="text" [(ngModel)]="draftDetail.cargoDescription" placeholder="Ej: Harina de trigo, cemento…" maxlength="255" />
+                  <input
+                    id="cargoDesc"
+                    type="text"
+                    [(ngModel)]="draftDetail.cargoDescription"
+                    placeholder="Ej: Harina de trigo, cemento…"
+                    maxlength="255"
+                  />
                 </div>
 
                 <div class="form-group">
                   <label for="unitWeight">Peso / Unidad *</label>
-                  <input id="unitWeight" type="text" [(ngModel)]="draftDetail.unitWeight" placeholder="Ej: 50 kg, 1 Ton" maxlength="50" />
+                  <input
+                    id="unitWeight"
+                    type="text"
+                    [(ngModel)]="draftDetail.unitWeight"
+                    placeholder="Ej: 50 kg, 1 Ton"
+                    maxlength="50"
+                  />
                 </div>
 
                 <div class="form-group">
@@ -114,11 +149,21 @@ type StatusKey = 'pendiente' | 'entregado' | 'cancelado' | 'en_transito' | 'conf
 
                 <div class="form-group">
                   <label for="deliveryAddr">Dirección de entrega *</label>
-                  <input id="deliveryAddr" type="text" [(ngModel)]="draftDetail.deliveryAddress" placeholder="Calle, número, ciudad…" maxlength="255" />
+                  <input
+                    id="deliveryAddr"
+                    type="text"
+                    [(ngModel)]="draftDetail.deliveryAddress"
+                    placeholder="Calle, número, ciudad…"
+                    maxlength="255"
+                  />
                 </div>
               </div>
 
-              <button class="btn-add-detail" (click)="addDetailToCart()" [disabled]="!isDetailValid()">
+              <button
+                class="btn-add-detail"
+                (click)="addDetailToCart()"
+                [disabled]="!isDetailValid()"
+              >
                 <i class="fa-solid fa-plus"></i> Agregar al carrito
               </button>
             </div>
@@ -126,7 +171,11 @@ type StatusKey = 'pendiente' | 'entregado' | 'cancelado' | 'en_transito' | 'conf
             <!-- ── Lista de detalles (carrito) ── -->
             @if (cartDetails().length > 0) {
               <div class="cart-section">
-                <h3 class="section-title"><i class="fa-solid fa-cart-shopping"></i> Detalles de la orden ({{ cartDetails().length }})</h3>
+                <h3 class="section-title">
+                  <i class="fa-solid fa-cart-shopping"></i> Detalles de la orden ({{
+                    cartDetails().length
+                  }})
+                </h3>
                 <div class="cart-list">
                   @for (item of cartDetails(); track $index) {
                     <div class="cart-item">
@@ -137,10 +186,17 @@ type StatusKey = 'pendiente' | 'entregado' | 'cancelado' | 'en_transito' | 'conf
                           <span class="cart-item-meta">
                             {{ item.unitWeight }} · {{ getPackagingLabel(item.typePackaging) }}
                           </span>
-                          <span class="cart-item-address"><i class="fa-solid fa-location-dot"></i> {{ item.deliveryAddress }}</span>
+                          <span class="cart-item-address"
+                            ><i class="fa-solid fa-location-dot"></i>
+                            {{ item.deliveryAddress }}</span
+                          >
                         </div>
                       </div>
-                      <button class="btn-remove-detail" (click)="removeFromCart($index)" title="Eliminar">
+                      <button
+                        class="btn-remove-detail"
+                        (click)="removeFromCart($index)"
+                        title="Eliminar"
+                      >
                         <i class="fa-solid fa-trash-can"></i>
                       </button>
                     </div>
@@ -160,8 +216,14 @@ type StatusKey = 'pendiente' | 'entregado' | 'cancelado' | 'en_transito' | 'conf
 
           <!-- Footer -->
           <div class="custom-modal-footer">
-            <button class="btn-cancel" (click)="closeOrderModal()" [disabled]="creatingOrder()">Cancelar</button>
-            <button class="btn-confirm" (click)="executeOrder()" [disabled]="creatingOrder() || cartDetails().length === 0">
+            <button class="btn-cancel" (click)="closeOrderModal()" [disabled]="creatingOrder()">
+              Cancelar
+            </button>
+            <button
+              class="btn-confirm"
+              (click)="executeOrder()"
+              [disabled]="creatingOrder() || cartDetails().length === 0"
+            >
               @if (creatingOrder()) {
                 <i class="fa-solid fa-spinner fa-spin"></i> Creando...
               } @else {
@@ -181,193 +243,263 @@ type StatusKey = 'pendiente' | 'entregado' | 'cancelado' | 'en_transito' | 'conf
 
       <!-- ===== FILTERS ===== -->
       <div class="filters-bar">
-          <div class="filter-tabs">
-            <button class="tab" [class.tab--active]="activeFilter === 'all'" (click)="applyFilter('all')">Todos</button>
-            <button class="tab" [class.tab--active]="activeFilter === 'pendiente'" (click)="applyFilter('pendiente')">Pendientes</button>
-            <button class="tab" [class.tab--active]="activeFilter === 'completada'" (click)="applyFilter('completada')">Completadas</button>
-          </div>
-          <div class="per-page">
-            <label>Mostrar</label>
-            <select [value]="perPage" (change)="onPerPageChange($event)">
-              <option value="5">5</option>
-              <option value="10">10</option>
-              <option value="25">25</option>
-            </select>
-          </div>
+        <div class="filter-tabs">
+          <button
+            class="tab"
+            [class.tab--active]="activeFilter === 'all'"
+            (click)="applyFilter('all')"
+          >
+            Todos
+          </button>
+          <button
+            class="tab"
+            [class.tab--active]="activeFilter === 'pendiente'"
+            (click)="applyFilter('pendiente')"
+          >
+            Pendientes
+          </button>
+          <button
+            class="tab"
+            [class.tab--active]="activeFilter === 'completada'"
+            (click)="applyFilter('completada')"
+          >
+            Completadas
+          </button>
         </div>
+        <div class="per-page">
+          <label>Mostrar</label>
+          <select [value]="perPage" (change)="onPerPageChange($event)">
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="25">25</option>
+          </select>
+        </div>
+      </div>
 
-        <!-- Loading -->
-        @if (loading()) {
-          <div class="empty-card">
-            <div class="empty-icon"><i class="fa-solid fa-spinner fa-spin"></i></div>
-            <h3>Cargando órdenes…</h3>
-          </div>
-        } @else if (filteredOrders().length === 0) {
-          <div class="empty-card">
-            <div class="empty-icon"><i class="fa-solid fa-clipboard-list"></i></div>
-            <h3>No hay órdenes registradas</h3>
-            <p>Cuando crees órdenes, aparecerán aquí para que puedas darles seguimiento.</p>
-          </div>
-        } @else {
-          <div class="table-card">
-            <div class="table-wrapper">
-              <table class="orders-table">
-                <thead>
+      <!-- Loading -->
+      @if (loading()) {
+        <div class="empty-card">
+          <div class="empty-icon"><i class="fa-solid fa-spinner fa-spin"></i></div>
+          <h3>Cargando órdenes…</h3>
+        </div>
+      } @else if (filteredOrders().length === 0) {
+        <div class="empty-card">
+          <div class="empty-icon"><i class="fa-solid fa-clipboard-list"></i></div>
+          <h3>No hay órdenes registradas</h3>
+          <p>Cuando crees órdenes, aparecerán aquí para que puedas darles seguimiento.</p>
+        </div>
+      } @else {
+        <div class="table-card">
+          <div class="table-wrapper">
+            <table class="orders-table">
+              <thead>
+                <tr>
+                  <th># Orden</th>
+                  <th>Acciones</th>
+                  <th>Empresa</th>
+                  <th>Estado</th>
+                  <th>Fecha creación</th>
+                  <th>Última actualización</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (order of filteredOrders(); track order.idOrder) {
                   <tr>
-                    <th># Orden</th>
-                    <th>Acciones</th>
-                    <th>Empresa</th>
-                    <th>Estado</th>
-                    <th>Fecha creación</th>
-                    <th>Última actualización</th>
+                    <td class="order-id">#{{ order.idOrder }}</td>
+                    <td>
+                      <button class="btn-view-details" (click)="viewOrderDetails(order)">
+                        <i class="fa-regular fa-eye"></i>
+                        <span>Ver detalles</span>
+                      </button>
+                    </td>
+                    <td>{{ order.company?.businessName ?? 'Sin asignar' }}</td>
+                    <td>
+                      <span class="status-chip" [class]="'status-chip status-' + order.status">
+                        {{ statusLabel(order.status) }}
+                      </span>
+                    </td>
+                    <td class="date-cell">{{ order.createdAt | date: 'dd/MM/yyyy HH:mm' }}</td>
+                    <td class="date-cell">{{ order.updatedAt | date: 'dd/MM/yyyy HH:mm' }}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  @for (order of filteredOrders(); track order.idOrder) {
-                    <tr>
-                      <td class="order-id">#{{ order.idOrder }}</td>
-                      <td>
-                        <button class="btn-view-details" (click)="viewOrderDetails(order)">
-                          <i class="fa-regular fa-eye"></i>
-                          <span>Ver detalles</span>
-                        </button>
-                      </td>
-                      <td>{{ order.company?.businessName ?? 'Sin asignar' }}</td>
-                      <td>
-                        <span class="status-chip" [class]="'status-chip status-' + order.status">
-                          {{ statusLabel(order.status) }}
-                        </span>
-                      </td>
-                      <td class="date-cell">{{ order.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
-                      <td class="date-cell">{{ order.updatedAt | date:'dd/MM/yyyy HH:mm' }}</td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          @if (meta()) {
+            <div class="pagination-bar">
+              <span class="page-info"
+                >Mostrando {{ rangeStart() }}–{{ rangeEnd() }} de {{ meta()!.total }}</span
+              >
+              <div class="page-buttons">
+                <button
+                  class="page-btn"
+                  [disabled]="meta()!.currentPage <= 1"
+                  (click)="goToPage(meta()!.currentPage - 1)"
+                >
+                  <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <span class="page-current">{{ meta()!.currentPage }} / {{ meta()!.lastPage }}</span>
+                <button
+                  class="page-btn"
+                  [disabled]="meta()!.currentPage >= meta()!.lastPage"
+                  (click)="goToPage(meta()!.currentPage + 1)"
+                >
+                  <i class="fa-solid fa-chevron-right"></i>
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- ═══════════ ORDER DETAIL MODAL ═══════════ -->
+      @if (showDetailModal() && selectedOrderDetail()) {
+        <div class="custom-modal-overlay" (click)="closeDetailModal()"></div>
+        <div class="custom-modal custom-modal--detail">
+          <!-- Header -->
+          <div class="detail-modal-header">
+            <div>
+              <h2 class="detail-modal-title">
+                Detalles del Pedido #{{ selectedOrderDetail()!.idOrder }}
+              </h2>
+              <p class="detail-modal-date">
+                Registrado el {{ selectedOrderDetail()!.createdAt | date: 'dd/MM/yyyy' }} a las
+                {{ selectedOrderDetail()!.createdAt | date: 'hh:mm a' }}
+              </p>
+            </div>
+            <button class="btn-close-modal" (click)="closeDetailModal()">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <!-- Body -->
+          <div class="detail-modal-body">
+            <!-- Company Info -->
+            <div class="detail-section">
+              <h3 class="detail-section-label">INFORMACIÓN DE LA EMPRESA</h3>
+              <div class="detail-info-card">
+                <p class="detail-info-name">
+                  {{ selectedOrderDetail()!.company?.businessName ?? 'Empresa no asignada' }}
+                </p>
+                <p class="detail-info-sub">
+                  <strong>Estado actual:</strong>
+                  <span
+                    class="status-chip"
+                    [class]="'status-chip status-' + selectedOrderDetail()!.status"
+                    style="margin-left: 6px;"
+                  >
+                    {{ statusLabel(selectedOrderDetail()!.status) }}
+                  </span>
+                </p>
+              </div>
             </div>
 
-            @if (meta()) {
-              <div class="pagination-bar">
-                <span class="page-info">Mostrando {{ rangeStart() }}–{{ rangeEnd() }} de {{ meta()!.total }}</span>
-                <div class="page-buttons">
-                  <button class="page-btn" [disabled]="meta()!.currentPage <= 1" (click)="goToPage(meta()!.currentPage - 1)">
-                    <i class="fa-solid fa-chevron-left"></i>
-                  </button>
-                  <span class="page-current">{{ meta()!.currentPage }} / {{ meta()!.lastPage }}</span>
-                  <button class="page-btn" [disabled]="meta()!.currentPage >= meta()!.lastPage" (click)="goToPage(meta()!.currentPage + 1)">
-                    <i class="fa-solid fa-chevron-right"></i>
-                  </button>
+            <!-- Order Items -->
+            <div class="detail-section">
+              <h3 class="detail-section-label">ITEMS DEL PEDIDO</h3>
+              <div class="detail-items-list">
+                @if (selectedOrderDetail()!.details && selectedOrderDetail()!.details!.length > 0) {
+                  @for (det of selectedOrderDetail()!.details; track $index) {
+                    <div class="detail-item-card">
+                      <div class="detail-item-left">
+                        <p class="detail-item-title">
+                          {{ det.cargoDescription || 'Servicio de Transporte' }}
+                        </p>
+                        <div class="detail-item-tags">
+                          <span class="detail-tag">
+                            <i class="fa-solid fa-cubes"></i> Cant: {{ det.amount || 1 }}
+                          </span>
+                          <span class="detail-tag">
+                            <i class="fa-solid fa-weight-hanging"></i> Peso:
+                            {{ det.unitWeight || 'N/A' }}
+                          </span>
+                          <span class="detail-tag">
+                            <i class="fa-solid fa-box"></i>
+                            {{ getPackagingLabel(det.typePackaging) }}
+                          </span>
+                        </div>
+                        @if (det.deliveryAddress) {
+                          <p class="detail-item-address">
+                            <i class="fa-solid fa-location-dot"></i> {{ det.deliveryAddress }}
+                          </p>
+                        }
+                      </div>
+                      <div class="detail-item-right">
+                        @if (det.amount && det.amount > 0) {
+                          <p class="detail-item-price">C$ {{ det.amount | number: '1.2-2' }}</p>
+                        } @else {
+                          <p class="detail-item-price detail-item-price--pending">Sin precio</p>
+                        }
+                      </div>
+                    </div>
+                  }
+
+                  <!-- Total -->
+                  @if (getOrderTotal(selectedOrderDetail()!) > 0) {
+                    <div class="detail-total-bar">
+                      <span class="detail-total-label">Total estimado</span>
+                      <span class="detail-total-value"
+                        >C$ {{ getOrderTotal(selectedOrderDetail()!) | number: '1.2-2' }}</span
+                      >
+                    </div>
+                  }
+                } @else {
+                  <p class="detail-no-items">
+                    <i class="fa-solid fa-inbox"></i>
+                    Este pedido no cuenta con detalles de carga.
+                  </p>
+                }
+              </div>
+            </div>
+
+            <!-- Price approval section -->
+            @if (selectedOrderDetail()!.status === 'esperando_aprobacion') {
+              <div class="price-approval-section">
+                <h3 class="detail-section-label" style="color: #d97706; margin-top: 1rem;">
+                  <i class="fa-solid fa-triangle-exclamation"></i> PRECIO ASIGNADO PENDIENTE DE
+                  APROBACIÓN
+                </h3>
+                <div class="approval-card">
+                  <p>
+                    La empresa ha asignado un precio total de
+                    <strong>C$ {{ getOrderTotal(selectedOrderDetail()!) | number: '1.2-2' }}</strong
+                    >. ¿Desea aceptar o rechazar esta tarifa?
+                  </p>
+                  <div class="approval-actions">
+                    <button
+                      class="btn-deny"
+                      (click)="respondPrice(false)"
+                      [disabled]="isRespondingPrice()"
+                    >
+                      <i class="fa-solid fa-xmark"></i> Rechazar
+                    </button>
+                    <button
+                      class="btn-accept"
+                      (click)="respondPrice(true)"
+                      [disabled]="isRespondingPrice()"
+                    >
+                      <i class="fa-solid fa-check"></i> Aceptar
+                    </button>
+                  </div>
                 </div>
               </div>
             }
           </div>
-        }
 
-        <!-- ═══════════ ORDER DETAIL MODAL ═══════════ -->
-        @if (showDetailModal() && selectedOrderDetail()) {
-          <div class="custom-modal-overlay" (click)="closeDetailModal()"></div>
-          <div class="custom-modal custom-modal--detail">
-            <!-- Header -->
-            <div class="detail-modal-header">
-              <div>
-                <h2 class="detail-modal-title">Detalles del Pedido #{{ selectedOrderDetail()!.idOrder }}</h2>
-                <p class="detail-modal-date">
-                  Registrado el {{ selectedOrderDetail()!.createdAt | date:'dd/MM/yyyy' }} a las {{ selectedOrderDetail()!.createdAt | date:'hh:mm a' }}
-                </p>
-              </div>
-              <button class="btn-close-modal" (click)="closeDetailModal()">
-                <i class="fa-solid fa-xmark"></i>
+          <!-- Footer -->
+          <div class="detail-modal-footer">
+            <!-- Botón de tracking solo si la orden está en_transito -->
+            @if (selectedOrderDetail()!.status === 'en_transito') {
+              <button class="btn-track-order" (click)="openTrackingModal(selectedOrderDetail()!)">
+                <i class="fa-solid fa-location-crosshairs"></i>
+                Seguir Pedido en Vivo
               </button>
-            </div>
-
-            <!-- Body -->
-            <div class="detail-modal-body">
-              <!-- Company Info -->
-              <div class="detail-section">
-                <h3 class="detail-section-label">INFORMACIÓN DE LA EMPRESA</h3>
-                <div class="detail-info-card">
-                  <p class="detail-info-name">
-                    {{ selectedOrderDetail()!.company?.businessName ?? 'Empresa no asignada' }}
-                  </p>
-                  <p class="detail-info-sub">
-                    <strong>Estado actual:</strong>
-                    <span class="status-chip" [class]="'status-chip status-' + selectedOrderDetail()!.status" style="margin-left: 6px;">
-                      {{ statusLabel(selectedOrderDetail()!.status) }}
-                    </span>
-                  </p>
-                </div>
-              </div>
-
-              <!-- Order Items -->
-              <div class="detail-section">
-                <h3 class="detail-section-label">ITEMS DEL PEDIDO</h3>
-                <div class="detail-items-list">
-                  @if (selectedOrderDetail()!.details && selectedOrderDetail()!.details!.length > 0) {
-                    @for (det of selectedOrderDetail()!.details; track $index) {
-                      <div class="detail-item-card">
-                        <div class="detail-item-left">
-                          <p class="detail-item-title">
-                            {{ det.cargoDescription || 'Servicio de Transporte' }}
-                          </p>
-                          <div class="detail-item-tags">
-                            <span class="detail-tag">
-                              <i class="fa-solid fa-cubes"></i> Cant: {{ det.amount || 1 }}
-                            </span>
-                            <span class="detail-tag">
-                              <i class="fa-solid fa-weight-hanging"></i> Peso: {{ det.unitWeight || 'N/A' }}
-                            </span>
-                            <span class="detail-tag">
-                              <i class="fa-solid fa-box"></i> {{ getPackagingLabel(det.typePackaging) }}
-                            </span>
-                          </div>
-                          @if (det.deliveryAddress) {
-                            <p class="detail-item-address">
-                              <i class="fa-solid fa-location-dot"></i> {{ det.deliveryAddress }}
-                            </p>
-                          }
-                        </div>
-                        <div class="detail-item-right">
-                          @if (det.amount && det.amount > 0) {
-                            <p class="detail-item-price">C$ {{ det.amount | number:'1.2-2' }}</p>
-                          } @else {
-                            <p class="detail-item-price detail-item-price--pending">Sin precio</p>
-                          }
-                        </div>
-                      </div>
-                    }
-
-                    <!-- Total -->
-                    @if (getOrderTotal(selectedOrderDetail()!) > 0) {
-                      <div class="detail-total-bar">
-                        <span class="detail-total-label">Total estimado</span>
-                        <span class="detail-total-value">C$ {{ getOrderTotal(selectedOrderDetail()!) | number:'1.2-2' }}</span>
-                      </div>
-                    }
-                  } @else {
-                    <p class="detail-no-items">
-                        <i class="fa-solid fa-inbox"></i>
-                        Este pedido no cuenta con detalles de carga.
-                      </p>
-                  }
-                </div>
-              </div>
-            </div>
-
-            <!-- Footer -->
-            <div class="detail-modal-footer">
-              <!-- Botón de tracking solo si la orden está en_transito -->
-              @if (selectedOrderDetail()!.status === 'en_transito') {
-                <button class="btn-track-order" (click)="openTrackingModal(selectedOrderDetail()!)">
-                  <i class="fa-solid fa-location-crosshairs"></i>
-                  Seguir Pedido en Vivo
-                </button>
-              }
-              <button class="btn-confirm" (click)="closeDetailModal()">
-                Entendido
-              </button>
-            </div>
+            }
+            <button class="btn-confirm" (click)="closeDetailModal()">Entendido</button>
           </div>
-        }
+        </div>
+      }
 
       <!-- ═══════════ TRACKING MODAL ═══════════ -->
       @if (showTrackingModal()) {
@@ -381,7 +513,9 @@ type StatusKey = 'pendiente' | 'entregado' | 'cancelado' | 'en_transito' | 'conf
                 EN VIVO
               </div>
               <h2>Seguimiento del Pedido #{{ trackingOrder()?.idOrder }}</h2>
-              <p class="tracking-subtitle">La ubicación del conductor se actualiza automáticamente cada 15 segundos</p>
+              <p class="tracking-subtitle">
+                La ubicación del conductor se actualiza automáticamente cada 15 segundos
+              </p>
             </div>
             <button class="btn-close-modal" (click)="closeTrackingModal()">
               <i class="fa-solid fa-xmark"></i>
@@ -416,7 +550,7 @@ type StatusKey = 'pendiente' | 'entregado' | 'cancelado' | 'en_transito' | 'conf
       }
     </div>
   `,
-  styleUrl: './client-orders.component.css'
+  styleUrl: './client-orders.component.css',
 })
 export class ClientOrdersComponent implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
@@ -439,6 +573,7 @@ export class ClientOrdersComponent implements OnInit, OnDestroy {
   readonly companies = signal<Company[]>([]);
   readonly selectedCompanyForOrder = signal<Company | null>(null);
   readonly creatingOrder = signal(false);
+  readonly isRespondingPrice = signal(false);
   searchTerm = '';
   private searchTimeout: any;
 
@@ -479,43 +614,74 @@ export class ClientOrdersComponent implements OnInit, OnDestroy {
   /* ── Orders ── */
   private loadOrders(): void {
     const u = this.auth.user();
-    if (!u?.idClient) { this.loading.set(false); return; }
+    if (!u?.idClient) {
+      this.loading.set(false);
+      return;
+    }
     this.loading.set(true);
-    this.clientService.getOrders({ idClient: u.idClient, page: this.currentPage, perPage: this.perPage }).subscribe({
-      next: (res) => { this.allOrders.set(res.data); this.meta.set(res.meta); this.applyFilterLocal(); this.loading.set(false); },
-      error: () => this.loading.set(false),
-    });
+    this.clientService
+      .getOrders({ idClient: u.idClient, page: this.currentPage, perPage: this.perPage })
+      .subscribe({
+        next: (res) => {
+          this.allOrders.set(res.data);
+          this.meta.set(res.meta);
+          this.applyFilterLocal();
+          this.loading.set(false);
+        },
+        error: () => this.loading.set(false),
+      });
   }
 
-  applyFilter(filter: string): void { this.activeFilter = filter; this.applyFilterLocal(); }
+  applyFilter(filter: string): void {
+    this.activeFilter = filter;
+    this.applyFilterLocal();
+  }
 
   private applyFilterLocal(): void {
     const all = this.allOrders();
     if (this.activeFilter === 'all') {
       this.filteredOrders.set(all);
     } else if (this.activeFilter === 'pending') {
-      this.filteredOrders.set(all.filter(o => ['pendiente', 'confirmado', 'en_transito'].includes(o.status)));
+      this.filteredOrders.set(
+        all.filter((o) => ['pendiente', 'confirmado', 'en_transito'].includes(o.status)),
+      );
     } else if (this.activeFilter === 'completed') {
-      this.filteredOrders.set(all.filter(o => ['entregado'].includes(o.status)));
+      this.filteredOrders.set(all.filter((o) => ['entregado'].includes(o.status)));
     } else if (this.activeFilter === 'cancelled') {
-      this.filteredOrders.set(all.filter(o => o.status === 'cancelado'));
+      this.filteredOrders.set(all.filter((o) => o.status === 'cancelado'));
     } else {
-      this.filteredOrders.set(all.filter(o => o.status === this.activeFilter));
+      this.filteredOrders.set(all.filter((o) => o.status === this.activeFilter));
     }
   }
 
-  onPerPageChange(event: Event): void { this.perPage = +(event.target as HTMLSelectElement).value; this.currentPage = 1; this.loadOrders(); }
-  goToPage(page: number): void { this.currentPage = page; this.loadOrders(); }
-  rangeStart(): number { const m = this.meta(); return m ? (m.currentPage - 1) * m.perPage + 1 : 0; }
-  rangeEnd(): number { const m = this.meta(); return m ? Math.min(m.currentPage * m.perPage, m.total) : 0; }
+  onPerPageChange(event: Event): void {
+    this.perPage = +(event.target as HTMLSelectElement).value;
+    this.currentPage = 1;
+    this.loadOrders();
+  }
+  goToPage(page: number): void {
+    this.currentPage = page;
+    this.loadOrders();
+  }
+  rangeStart(): number {
+    const m = this.meta();
+    return m ? (m.currentPage - 1) * m.perPage + 1 : 0;
+  }
+  rangeEnd(): number {
+    const m = this.meta();
+    return m ? Math.min(m.currentPage * m.perPage, m.total) : 0;
+  }
   statusLabel(status: string): string {
-    const map: Record<string, string> = { 
-        pendiente: 'Pendiente', 
-        entregado: 'Entregado', 
-        cancelado: 'Cancelado', 
-        en_transito: 'En tránsito', 
-        confirmado: 'Confirmado', 
-        completado: 'Completado' 
+    const map: Record<string, string> = {
+      pendiente: 'Pendiente',
+      completada: 'Completada',
+      cancelada: 'Cancelada',
+      en_proceso: 'En proceso',
+      confirmado: 'Confirmado',
+      completado: 'Completado',
+      esperando_aprobacion: 'Esperando Aprobación',
+      aceptado: 'Aceptado',
+      denegado: 'Denegado',
     };
     return map[status] ?? status;
   }
@@ -541,6 +707,28 @@ export class ClientOrdersComponent implements OnInit, OnDestroy {
     this.selectedOrderDetail.set(null);
   }
 
+  respondPrice(accepted: boolean): void {
+    const order = this.selectedOrderDetail();
+    if (!order) return;
+
+    this.isRespondingPrice.set(true);
+    this.clientService.respondPrice(order.idOrder, { accepted }).subscribe({
+      next: (updatedOrder) => {
+        this.isRespondingPrice.set(false);
+        this.ui.showToast(
+          accepted ? 'Precio aceptado exitosamente' : 'Precio rechazado',
+          'success',
+        );
+        this.closeDetailModal();
+        this.loadOrders();
+      },
+      error: (err) => {
+        this.isRespondingPrice.set(false);
+        this.ui.mostrarError(err);
+      },
+    });
+  }
+
   getOrderTotal(order: ClientOrder): number {
     if (!order.details || order.details.length === 0) return 0;
     return order.details.reduce((sum, d) => sum + (d.amount ?? 0), 0);
@@ -549,8 +737,14 @@ export class ClientOrdersComponent implements OnInit, OnDestroy {
   private loadCompanies(search?: string): void {
     this.loadingCompanies.set(true);
     this.clientService.getCompanies({ page: 1, perPage: 50, search }).subscribe({
-      next: (res) => { this.companies.set(res.data); this.loadingCompanies.set(false); },
-      error: () => { this.companies.set([]); this.loadingCompanies.set(false); },
+      next: (res) => {
+        this.companies.set(res.data);
+        this.loadingCompanies.set(false);
+      },
+      error: () => {
+        this.companies.set([]);
+        this.loadingCompanies.set(false);
+      },
     });
   }
 
@@ -577,19 +771,27 @@ export class ClientOrdersComponent implements OnInit, OnDestroy {
 
   /* ── Detail Draft / Cart ── */
   private emptyDraft(): OrderDetailDraft {
-    return { cargoDescription: '', amount: 1, unitWeight: '', deliveryAddress: '', typePackaging: 'pallet' };
+    return {
+      cargoDescription: '',
+      amount: 1,
+      unitWeight: '',
+      deliveryAddress: '',
+      typePackaging: 'pallet',
+    };
   }
 
   isDetailValid(): boolean {
     const d = this.draftDetail;
-    return d.cargoDescription.trim().length >= 3
-      && d.unitWeight.trim().length > 0
-      && d.deliveryAddress.trim().length >= 5;
+    return (
+      d.cargoDescription.trim().length >= 3 &&
+      d.unitWeight.trim().length > 0 &&
+      d.deliveryAddress.trim().length >= 5
+    );
   }
 
   addDetailToCart(): void {
     if (!this.isDetailValid()) return;
-    this.cartDetails.update(list => [
+    this.cartDetails.update((list) => [
       ...list,
       {
         cargoDescription: this.draftDetail.cargoDescription.trim(),
@@ -603,11 +805,11 @@ export class ClientOrdersComponent implements OnInit, OnDestroy {
   }
 
   removeFromCart(index: number): void {
-    this.cartDetails.update(list => list.filter((_, i) => i !== index));
+    this.cartDetails.update((list) => list.filter((_, i) => i !== index));
   }
 
   getPackagingLabel(value: string): string {
-    return this.packagingTypes.find(p => p.value === value)?.label ?? value;
+    return this.packagingTypes.find((p) => p.value === value)?.label ?? value;
   }
 
   /* ── Execute Order + Details ── */
@@ -618,48 +820,55 @@ export class ClientOrdersComponent implements OnInit, OnDestroy {
     if (!company || details.length === 0) return;
 
     if (!u?.idClient) {
-      this.ui.mostrarError('Tu cuenta de usuario no tiene un perfil de Cliente (idClient) asociado. Por favor, actualiza tu perfil antes de crear órdenes.');
+      this.ui.mostrarError(
+        'Tu cuenta de usuario no tiene un perfil de Cliente (idClient) asociado. Por favor, actualiza tu perfil antes de crear órdenes.',
+      );
       return;
     }
 
     this.creatingOrder.set(true);
 
     // 1) Crear la cabecera de la orden
-    this.clientService.createOrder({ idClient: u.idClient, idCompany: company.idCompany }).subscribe({
-      next: (order) => {
-        // 2) Crear todos los detalles en paralelo
-        const detailRequests = details.map(d =>
-          this.clientService.createOrderDetail({
-            idOrder: order.idOrder,
-            cargoDescription: d.cargoDescription,
-            amount: d.amount,
-            unitWeight: d.unitWeight,
-            deliveryAddress: d.deliveryAddress,
-            typePackaging: d.typePackaging,
-          })
-        );
+    this.clientService
+      .createOrder({ idClient: u.idClient, idCompany: company.idCompany })
+      .subscribe({
+        next: (order) => {
+          // 2) Crear todos los detalles en paralelo
+          const detailRequests = details.map((d) =>
+            this.clientService.createOrderDetail({
+              idOrder: order.idOrder,
+              cargoDescription: d.cargoDescription,
+              amount: d.amount,
+              unitWeight: d.unitWeight,
+              deliveryAddress: d.deliveryAddress,
+              typePackaging: d.typePackaging,
+            }),
+          );
 
-        forkJoin(detailRequests).subscribe({
-          next: () => {
-            this.creatingOrder.set(false);
-            this.selectedCompanyForOrder.set(null);
-            this.cartDetails.set([]);
-            this.draftDetail = this.emptyDraft();
-            this.ui.showToast('Orden creada exitosamente con ' + details.length + ' detalle(s)', 'success');
-            this.currentPage = 1;
-            this.loadOrders();
-          },
-          error: (err) => {
-            this.creatingOrder.set(false);
-            this.ui.mostrarError(err);
-          },
-        });
-      },
-      error: (err) => {
-        this.creatingOrder.set(false);
-        this.ui.mostrarError(err);
-      },
-    });
+          forkJoin(detailRequests).subscribe({
+            next: () => {
+              this.creatingOrder.set(false);
+              this.selectedCompanyForOrder.set(null);
+              this.cartDetails.set([]);
+              this.draftDetail = this.emptyDraft();
+              this.ui.showToast(
+                'Orden creada exitosamente con ' + details.length + ' detalle(s)',
+                'success',
+              );
+              this.currentPage = 1;
+              this.loadOrders();
+            },
+            error: (err) => {
+              this.creatingOrder.set(false);
+              this.ui.mostrarError(err);
+            },
+          });
+        },
+        error: (err) => {
+          this.creatingOrder.set(false);
+          this.ui.mostrarError(err);
+        },
+      });
   }
 
   /* ── Tracking ── */
@@ -757,7 +966,11 @@ export class ClientOrdersComponent implements OnInit, OnDestroy {
 
           const now = new Date();
           this.lastTrackingUpdate.set(
-            now.toLocaleTimeString('es-NI', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+            now.toLocaleTimeString('es-NI', {
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+            }),
           );
 
           if (!this.trackingMap) return;
@@ -766,8 +979,11 @@ export class ClientOrdersComponent implements OnInit, OnDestroy {
 
           // Agregar punto a la ruta recorrida
           // Bug #1 fix: routeCoords guarda arrays [lat, lng], acceder con índice directo
-          const lastCoord = this.routeCoords[this.routeCoords.length - 1] as [number, number] | undefined;
-          const isDifferent = !lastCoord ||
+          const lastCoord = this.routeCoords[this.routeCoords.length - 1] as
+            | [number, number]
+            | undefined;
+          const isDifferent =
+            !lastCoord ||
             Math.abs(lastCoord[0] - lat) > 0.00001 ||
             Math.abs(lastCoord[1] - lng) > 0.00001;
 

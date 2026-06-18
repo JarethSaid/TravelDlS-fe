@@ -611,6 +611,9 @@ export class OrdersListComponent implements OnInit {
       en_proceso: 'En proceso',
       completado: 'Completado',
       cancelado: 'Cancelado',
+      esperando_aprobacion: 'Esperando Aprobación',
+      aceptado: 'Aceptado',
+      denegado: 'Denegado'
     };
     return map[status] ?? status;
   }
@@ -622,6 +625,9 @@ export class OrdersListComponent implements OnInit {
       en_proceso: 'badge-resort badge-activa',
       completado: 'badge-resort badge-finalizada',
       cancelado: 'badge-resort badge-cancelada',
+      esperando_aprobacion: 'badge-resort badge-esperando',
+      aceptado: 'badge-resort badge-aceptado',
+      denegado: 'badge-resort badge-cancelada'
     };
     return map[status] ?? 'badge-resort badge-pendiente';
   }

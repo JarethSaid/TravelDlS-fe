@@ -261,8 +261,14 @@
   font-family: inherit;
 }
 
-.tab:hover { color: #1e293b; background: #f1f5f9; }
-.tab--active { background: #3d39af !important; color: white !important; }
+.tab:hover {
+  color: #1e293b;
+  background: #f1f5f9;
+}
+.tab--active {
+  background: #3d39af !important;
+  color: white !important;
+}
 
 .per-page {
   display: flex;
@@ -284,14 +290,16 @@
   outline: none;
 }
 
-.per-page select:focus { border-color: #3d39af; }
+.per-page select:focus {
+  border-color: #3d39af;
+}
 
 /* ══ Empty Card ══ */
 .empty-card {
   background: white;
   border-radius: 16px;
   padding: 60px 24px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
   border: 1px solid #f1f5f9;
   display: flex;
   flex-direction: column;
@@ -311,21 +319,38 @@
   margin-bottom: 20px;
 }
 
-.empty-card h3 { margin: 0 0 8px; font-size: 18px; font-weight: 700; color: #1e293b; }
-.empty-card p { margin: 0; font-size: 14px; color: #94a3b8; max-width: 360px; line-height: 1.6; }
+.empty-card h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+}
+.empty-card p {
+  margin: 0;
+  font-size: 14px;
+  color: #94a3b8;
+  max-width: 360px;
+  line-height: 1.6;
+}
 
 /* ══ Table ══ */
 .table-card {
   background: white;
   border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
   border: 1px solid #f1f5f9;
   overflow: hidden;
 }
 
-.table-wrapper { overflow-x: auto; }
+.table-wrapper {
+  overflow-x: auto;
+}
 
-.orders-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.orders-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
 
 .orders-table th {
   text-align: left;
@@ -345,11 +370,21 @@
   border-bottom: 1px solid #f1f5f9;
 }
 
-.orders-table tbody tr { transition: background 0.15s; }
-.orders-table tbody tr:hover { background: #f8fafc; }
+.orders-table tbody tr {
+  transition: background 0.15s;
+}
+.orders-table tbody tr:hover {
+  background: #f8fafc;
+}
 
-.order-id { font-weight: 600; color: #3d39af; }
-.date-cell { color: #64748b; font-size: 13px; }
+.order-id {
+  font-weight: 600;
+  color: #3d39af;
+}
+.date-cell {
+  color: #64748b;
+  font-size: 13px;
+}
 
 .status-chip {
   display: inline-flex;
@@ -360,10 +395,34 @@
   font-weight: 600;
 }
 
-.status-pendiente { background: #fef3c7; color: #d97706; }
-.status-entregado { background: #dcfce7; color: #16a34a; }
-.status-cancelado { background: #fee2e2; color: #dc2626; }
-.status-en_transito { background: #dbeafe; color: #2563eb; }
+.status-pendiente {
+  background: #fef3c7;
+  color: #d97706;
+}
+.status-completada {
+  background: #dcfce7;
+  color: #16a34a;
+}
+.status-cancelada {
+  background: #fee2e2;
+  color: #dc2626;
+}
+.status-en_proceso {
+  background: #dbeafe;
+  color: #2563eb;
+}
+.status-esperando_aprobacion {
+  background: #e0f2fe;
+  color: #0ea5e9;
+}
+.status-aceptado {
+  background: #dcfce7;
+  color: #16a34a;
+}
+.status-denegado {
+  background: #fee2e2;
+  color: #dc2626;
+}
 
 /* ══ Pagination ══ */
 .pagination-bar {
@@ -376,7 +435,10 @@
   gap: 12px;
 }
 
-.page-info { font-size: 13px; color: #64748b; }
+.page-info {
+  font-size: 13px;
+  color: #64748b;
+}
 
 .page-buttons {
   display: flex;
@@ -398,14 +460,29 @@
   transition: all 0.2s;
 }
 
-.page-btn:hover:not(:disabled) { border-color: #3d39af; color: #3d39af; }
-.page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.page-current { font-size: 13px; font-weight: 600; color: #1e293b; }
+.page-btn:hover:not(:disabled) {
+  border-color: #3d39af;
+  color: #3d39af;
+}
+.page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.page-current {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+}
 
 /* ══ Responsive ══ */
 @media (max-width: 600px) {
-  .filters-bar { flex-direction: column; align-items: stretch; }
-  .per-page { justify-content: flex-end; }
+  .filters-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .per-page {
+    justify-content: flex-end;
+  }
 
   .companies-grid {
     grid-template-columns: 1fr;
@@ -447,8 +524,24 @@
   max-height: 90vh;
 }
 
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes slideUp { from { opacity: 0; transform: translate(-50%, -45%); } to { opacity: 1; transform: translate(-50%, -50%); } }
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -45%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
 
 .custom-modal-header {
   display: flex;
@@ -589,7 +682,8 @@
   box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
 }
 
-.btn-confirm:disabled, .btn-cancel:disabled {
+.btn-confirm:disabled,
+.btn-cancel:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
@@ -654,7 +748,9 @@
   color: #1e293b;
   background: white;
   outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 .form-group input:focus,
@@ -984,7 +1080,9 @@
   border: 1.5px solid #e2e8f0;
   border-radius: 12px;
   padding: 16px;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 .detail-item-card:hover {
@@ -1150,204 +1248,89 @@
 }
 
 /* ══════════════════════════════════════════════════
-   Tracking Modal Styles
+   Price Approval Section
    ══════════════════════════════════════════════════ */
-
-.custom-modal--tracking {
-  max-width: 860px;
-  max-height: 92vh;
-  width: 94vw;
-  padding: 0;
-  overflow: hidden;
+.price-approval-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.tracking-modal-header {
+.approval-card {
+  background: #fffbeb;
+  border: 1.5px solid #fde68a;
+  border-radius: 12px;
+  padding: 16px;
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  padding: 20px 24px 16px;
-  background: linear-gradient(135deg, #1e1b4b, #3d39af);
+  flex-direction: column;
   gap: 16px;
 }
 
-.tracking-header-info {
+.approval-card p {
+  margin: 0;
+  font-size: 14px;
+  color: #92400e;
+  line-height: 1.5;
+}
+
+.approval-card strong {
+  font-size: 16px;
+  font-weight: 800;
+  color: #b45309;
+}
+
+.approval-actions {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  justify-content: flex-end;
+  gap: 12px;
 }
 
-.tracking-modal-header h2 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 700;
-  color: white;
-}
-
-.tracking-subtitle {
-  margin: 0;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.tracking-modal-header .btn-close-modal {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.25);
-  color: white;
-  flex-shrink: 0;
-}
-
-.tracking-modal-header .btn-close-modal:hover {
-  background: rgba(255, 255, 255, 0.25);
-  border-color: rgba(255, 255, 255, 0.4);
-  color: white;
-}
-
-/* Badge "EN VIVO" con punto parpadeante */
-.tracking-live-badge {
+.btn-deny {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 3px 10px;
-  background: rgba(239, 68, 68, 0.25);
-  border: 1px solid rgba(239, 68, 68, 0.5);
-  border-radius: 20px;
-  color: #fca5a5;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  width: fit-content;
-  margin-bottom: 4px;
-}
-
-.tracking-live-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #ef4444;
-  animation: live-blink 1.2s ease-in-out infinite;
-}
-
-@keyframes live-blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
-}
-
-/* Contenedor del mapa */
-.tracking-map-container {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-}
-
-.tracking-map {
-  width: 100%;
-  height: 500px;
-  background: #e8ecf0;
-}
-
-@media (max-height: 700px) {
-  .tracking-map { height: 340px; }
-}
-
-/* Barra de información debajo del mapa */
-.tracking-info-bar {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  padding: 14px 20px;
+  gap: 8px;
+  padding: 10px 18px;
   background: white;
-  border-top: 1px solid #f1f5f9;
-}
-
-.tracking-info-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  color: #dc2626;
+  border: 1.5px solid #fecaca;
+  border-radius: 10px;
   font-size: 13px;
-  color: #475569;
-  font-weight: 500;
-}
-
-.tracking-info-item i {
-  color: #3d39af;
-  font-size: 14px;
-}
-
-/* Estado sin ubicación aún */
-.tracking-no-location {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 20px;
-  background: rgba(255, 255, 255, 0.95);
-  border-top: 1px solid #f1f5f9;
-  text-align: center;
-}
-
-.tracking-no-location i {
-  font-size: 24px;
-  color: #94a3b8;
-}
-
-.tracking-no-location p {
-  margin: 0;
-  font-size: 14px;
   font-weight: 600;
-  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
 }
 
-.tracking-no-location small {
-  font-size: 12px;
-  color: #94a3b8;
+.btn-deny:hover:not(:disabled) {
+  background: #fef2f2;
+  border-color: #f87171;
 }
 
-/* Botón de tracking en el footer del modal de detalles */
-.btn-track-order {
+.btn-accept {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 20px;
-  background: linear-gradient(135deg, #3d39af, #6366f1);
+  padding: 10px 18px;
+  background: linear-gradient(135deg, #10b981, #059669);
   color: white;
   border: none;
   border-radius: 10px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.25s;
-  box-shadow: 0 4px 14px rgba(61, 57, 175, 0.4);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
   font-family: inherit;
-  animation: track-btn-pulse 2.5s ease-in-out infinite;
 }
 
-.btn-track-order:hover {
+.btn-accept:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(61, 57, 175, 0.55);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
 }
 
-.btn-track-order i {
-  font-size: 15px;
-}
-
-/* Animación de los marcadores del mapa */
-@keyframes marker-pulse {
-  0%, 100% { box-shadow: 0 4px 14px rgba(61, 57, 175, 0.55); }
-  50% { box-shadow: 0 4px 24px rgba(61, 57, 175, 0.9), 0 0 0 8px rgba(61, 57, 175, 0.15); }
-}
-
-@keyframes track-btn-pulse {
-  0%, 100% { box-shadow: 0 4px 14px rgba(61, 57, 175, 0.4); }
-  50% { box-shadow: 0 4px 22px rgba(61, 57, 175, 0.7); }
-}
-
-/* Anillo de pulso expansivo alrededor del camión en el mapa */
-@keyframes truck-ring {
-  0% { transform: scale(0.8); opacity: 0.9; }
-  70% { transform: scale(2); opacity: 0; }
-  100% { transform: scale(2); opacity: 0; }
+.btn-deny:disabled,
+.btn-accept:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }

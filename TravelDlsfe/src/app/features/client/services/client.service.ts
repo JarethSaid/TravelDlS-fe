@@ -84,4 +84,8 @@ export class ClientService {
   }): Observable<OrderDetail> {
     return this.http.post<OrderDetail>(`${this.base}/api/order-details`, body);
   }
+
+  respondPrice(idOrder: number, body: { accepted: boolean }): Observable<ClientOrder> {
+    return this.http.patch<ClientOrder>(`${this.base}/api/orders/${idOrder}/respond-price`, body);
+  }
 }
