@@ -674,6 +674,9 @@ export class ClientOrdersComponent implements OnInit, OnDestroy {
   statusLabel(status: string): string {
     const map: Record<string, string> = {
       pendiente: 'Pendiente',
+      entregado: 'Entregado',
+      cancelado: 'Cancelado',
+      en_transito: 'En tránsito',
       completada: 'Completada',
       cancelada: 'Cancelada',
       en_proceso: 'En proceso',
