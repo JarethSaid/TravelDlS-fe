@@ -16,7 +16,6 @@ import { interval, Subscription, switchMap, startWith } from 'rxjs';
         <p class="subtitle">Gestiona y consulta tus viajes asignados</p>
       </div>
 
-      <!-- Filtros -->
       <div class="filters-bar">
         <div class="filter-tabs">
           <button class="tab" [class.tab--active]="activeFilter() === 'all'" (click)="setFilter('all')">Todos</button>
@@ -77,8 +76,7 @@ import { interval, Subscription, switchMap, startWith } from 'rxjs';
                       </span>
                     </td>
                     <td>
-                      <!-- Botón Iniciar Viaje (solo si está en estado confirmado o pendiente) -->
-                      @if (trip.status === 'confirmado' || trip.status === 'pendiente') {
+                      @if (trip.status === 'aceptado') {
                         <button
                           class="btn-start-trip"
                           (click)="startTrip(trip)"
@@ -93,7 +91,6 @@ import { interval, Subscription, switchMap, startWith } from 'rxjs';
                         </button>
                       }
 
-                      <!-- Botón Finalizar Viaje (solo si está en_transito y es el viaje activo con GPS) -->
                       @if (trip.status === 'en_transito') {
                         <button
                           class="btn-end-trip"
@@ -108,7 +105,6 @@ import { interval, Subscription, switchMap, startWith } from 'rxjs';
                           Finalizar Viaje
                         </button>
 
-                        <!-- Indicador de GPS activo -->
                         @if (activeTrackingOrderId() === trip.idOrder) {
                           <div class="gps-indicator">
                             <span class="gps-dot"></span>
@@ -267,9 +263,11 @@ import { interval, Subscription, switchMap, startWith } from 'rxjs';
     }
 
     .status-pendiente { background: #fef3c7; color: #b45309; }
+    .status-confirmado { background: #e0e7ff; color: #3730a3; }
+    .status-esperando_aprobacion { background: #e0f2fe; color: #0ea5e9; }
+    .status-aceptado { background: #f3e8ff; color: #7c3aed; }
     .status-en_transito { background: #dbeafe; color: #1d4ed8; }
     .status-entregado { background: #dcfce7; color: #166534; }
-    .status-confirmado { background: #e0e7ff; color: #3730a3; }
     .status-cancelado { background: #fee2e2; color: #b91c1c; }
 
     .btn-start-trip {
@@ -360,14 +358,15 @@ export class DriverTripsComponent implements OnInit, OnDestroy {
     this.startPolling();
   }
 
-  /** Calcula la distancia en metros entre dos coordenadas (fórmula de Haversine simplificada) */
   private distanceMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
     const R = 6371000;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLng = (lng2 - lng1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) ** 2 +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-      Math.sin(dLng / 2) ** 2;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLng = ((lng2 - lng1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLng / 2) ** 2;
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
@@ -378,33 +377,34 @@ export class DriverTripsComponent implements OnInit, OnDestroy {
 
   startPolling(): void {
     const user = this.auth.user();
-    if (!user?.idDriver) { this.loading.set(false); return; }
+    if (!user?.idDriver) {
+      this.loading.set(false);
+      return;
+    }
 
-    this.pollSub = interval(10000).pipe(
-      startWith(0),
-      switchMap(() => {
-        const p = new HttpParams()
-          .set('idDriver', user.idDriver!)
-          .set('perPage', 50);
-        return this.orderService.getOrders(p);
-      })
-    ).subscribe({
-      next: (res) => {
-        this.trips.set(res.data || []);
-        this.applyFilter();
-        this.loading.set(false);
+    this.pollSub = interval(10000)
+      .pipe(
+        startWith(0),
+        switchMap(() => {
+          const p = new HttpParams().set('idDriver', user.idDriver!).set('perPage', 50);
+          return this.orderService.getOrders(p);
+        }),
+      )
+      .subscribe({
+        next: (res) => {
+          this.trips.set(res.data || []);
+          this.applyFilter();
+          this.loading.set(false);
 
-        // Reanudar GPS automáticamente si hay un viaje en tránsito y el GPS no está activo
-        if (this.activeTrackingOrderId() === null) {
-          const activeTrip = (res.data || []).find((t: any) => t.status === 'en_transito');
-          if (activeTrip) {
-            console.log('[Tracking] Reanudando GPS para viaje en tránsito:', activeTrip.idOrder);
-            this.startGeolocation(activeTrip.idOrder);
+          if (this.activeTrackingOrderId() === null) {
+            const activeTrip = (res.data || []).find((t: any) => t.status === 'en_transito');
+            if (activeTrip) {
+              this.startGeolocation(activeTrip.idOrder);
+            }
           }
-        }
-      },
-      error: () => this.loading.set(false),
-    });
+        },
+        error: () => this.loading.set(false),
+      });
   }
 
   setFilter(filter: string): void {
@@ -418,23 +418,24 @@ export class DriverTripsComponent implements OnInit, OnDestroy {
     if (filter === 'all') {
       this.filteredTrips.set(all);
     } else if (filter === 'pending') {
-      this.filteredTrips.set(all.filter(t =>
-        ['pendiente', 'confirmado', 'en_transito'].includes(t.status)
-      ));
+      this.filteredTrips.set(
+        all.filter((t) =>
+          ['pendiente', 'confirmado', 'esperando_aprobacion', 'aceptado', 'en_transito'].includes(
+            t.status,
+          ),
+        ),
+      );
     } else if (filter === 'completed') {
-      this.filteredTrips.set(all.filter(t =>
-        ['entregado'].includes(t.status)
-      ));
+      this.filteredTrips.set(all.filter((t) => ['entregado'].includes(t.status)));
     }
   }
 
-  /** Inicia el viaje: cambia estado a en_transito y activa el GPS */
   startTrip(trip: any): void {
     this.actionLoading.set(trip.idOrder);
     this.orderService.updateOrderStatus(trip.idOrder, 'en_transito').subscribe({
       next: () => {
         trip.status = 'en_transito';
-        this.trips.update(list => [...list]);
+        this.trips.update((list) => [...list]);
         this.applyFilter();
         this.actionLoading.set(null);
         this.startGeolocation(trip.idOrder);
@@ -443,13 +444,12 @@ export class DriverTripsComponent implements OnInit, OnDestroy {
     });
   }
 
-  /** Finaliza el viaje: detiene el GPS y cambia estado a entregado */
   endTrip(trip: any): void {
     this.actionLoading.set(trip.idOrder);
     this.orderService.updateOrderStatus(trip.idOrder, 'entregado').subscribe({
       next: () => {
         trip.status = 'entregado';
-        this.trips.update(list => [...list]);
+        this.trips.update((list) => [...list]);
         this.applyFilter();
         this.actionLoading.set(null);
         this.stopGeolocation();
@@ -458,50 +458,41 @@ export class DriverTripsComponent implements OnInit, OnDestroy {
     });
   }
 
-  /** Activa el GPS del dispositivo y envía las coordenadas al backend */
   private startGeolocation(idOrder: number): void {
     if (!navigator.geolocation) {
-      console.warn('[Tracking] La geolocalización no está disponible en este dispositivo.');
       return;
     }
 
     this.activeTrackingOrderId.set(idOrder);
 
-    // Obtener la posición actual continuamente
     this.locationWatchId = navigator.geolocation.watchPosition(
       (position) => {
         const newLat = position.coords.latitude;
         const newLng = position.coords.longitude;
 
         if (!this.currentCoords) {
-          // Bug #2 fix: primera posición — enviar inmediatamente sin esperar el heartbeat
           this.currentCoords = { lat: newLat, lng: newLng };
-          this.orderService
-            .updateOrderLocation(idOrder, newLat, newLng)
-            .subscribe({ error: (e) => console.error('[Tracking] Error al enviar primera ubicación:', e) });
+          this.orderService.updateOrderLocation(idOrder, newLat, newLng).subscribe({ error: () => {} });
         } else {
-          // Si el conductor se movió más de 10 metros, enviar inmediatamente
           const dist = this.distanceMeters(
-            this.currentCoords.lat, this.currentCoords.lng,
-            newLat, newLng
+            this.currentCoords.lat,
+            this.currentCoords.lng,
+            newLat,
+            newLng,
           );
           if (dist >= 10) {
-            this.orderService
-              .updateOrderLocation(idOrder, newLat, newLng)
-              .subscribe({ error: (e) => console.error('[Tracking] Error al enviar ubicación por movimiento:', e) });
+            this.orderService.updateOrderLocation(idOrder, newLat, newLng).subscribe({ error: () => {} });
           }
           this.currentCoords = { lat: newLat, lng: newLng };
         }
       },
-      (err) => console.error('[Tracking] Error GPS:', err),
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      () => {},
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
     );
 
-    // Coordenada base simulada (cerca de Managua/Nicaragua) por si falla el GPS real
     let simulatedLat = 12.1328;
     let simulatedLng = -86.2504;
 
-    // Heartbeat: enviar coordenadas cada 15 segundos aunque no haya movimiento
     this.locationIntervalSub = interval(15000).subscribe(() => {
       let latToSend: number;
       let lngToSend: number;
@@ -510,21 +501,16 @@ export class DriverTripsComponent implements OnInit, OnDestroy {
         latToSend = this.currentCoords.lat;
         lngToSend = this.currentCoords.lng;
       } else {
-        // Modo simulación: Mover ligeramente el camión
         simulatedLat += 0.0001;
         simulatedLng += 0.0001;
         latToSend = simulatedLat;
         lngToSend = simulatedLng;
-        console.warn('[Tracking] Usando GPS simulado porque no hay posición real aún.');
       }
 
-      this.orderService
-        .updateOrderLocation(idOrder, latToSend, lngToSend)
-        .subscribe({ error: (e) => console.error('[Tracking] Error al enviar ubicación (heartbeat):', e) });
+      this.orderService.updateOrderLocation(idOrder, latToSend, lngToSend).subscribe({ error: () => {} });
     });
   }
 
-  /** Detiene el GPS y limpia los intervalos */
   private stopGeolocation(): void {
     if (this.locationWatchId !== null) {
       navigator.geolocation.clearWatch(this.locationWatchId);
@@ -540,6 +526,8 @@ export class DriverTripsComponent implements OnInit, OnDestroy {
     const map: Record<string, string> = {
       pendiente: 'Pendiente',
       confirmado: 'Confirmado',
+      esperando_aprobacion: 'Esperando Aprobación',
+      aceptado: 'Aceptado',
       en_transito: 'En tránsito',
       entregado: 'Entregado',
       cancelado: 'Cancelado',

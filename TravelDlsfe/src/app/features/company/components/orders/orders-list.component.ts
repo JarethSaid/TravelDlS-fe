@@ -51,6 +51,10 @@ interface Order {
             <option value="">Todos los estados</option>
             <option value="pendiente">Pendiente</option>
             <option value="confirmado">Confirmado</option>
+            <option value="esperando_aprobacion">Esperando aprobación</option>
+            <option value="aceptado">Aceptado</option>
+            <option value="en_transito">En tránsito</option>
+            <option value="entregado">Entregado</option>
             <option value="en_proceso">En proceso</option>
             <option value="completado">Completado</option>
             <option value="cancelado">Cancelado</option>
@@ -167,10 +171,13 @@ interface Order {
                     </td>
 
                     <td style="min-width: 220px;">
+                      @let isAccepted = o.status === 'aceptado';
                       <div
-                        style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; transition: all 0.2s;"
-                        onmouseover="this.style.borderColor='#cbd5e1'; this.style.boxShadow='0 4px 6px -1px rgba(0, 0, 0, 0.05)'"
-                        onmouseout="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'"
+                        [style.background]="isAccepted ? '#faf5ff' : '#f8fafc'"
+                        [style.border]="isAccepted ? '1px solid #ddd6fe' : '1px solid #e2e8f0'"
+                        style="border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; transition: all 0.2s;"
+                        onmouseover="if(this.style.background !== 'rgb(250, 245, 255)') { this.style.borderColor='#cbd5e1'; this.style.boxShadow='0 4px 6px -1px rgba(0, 0, 0, 0.05)'; }"
+                        onmouseout="if(this.style.background !== 'rgb(250, 245, 255)') { this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'; }"
                       >
                         <!-- Fila de Cálculo -->
                         <div style="display: flex; gap: 8px; align-items: center;">
@@ -184,6 +191,9 @@ interface Order {
                               min="0"
                               [(ngModel)]="o.customRate"
                               placeholder="Tarifa por peso"
+                              [disabled]="isAccepted"
+                              [style.backgroundColor]="isAccepted ? '#f5f3ff' : 'white'"
+                              [style.cursor]="isAccepted ? 'not-allowed' : 'text'"
                               style="width: 100%; padding: 8px 8px 8px 30px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-family: inherit; font-size: 13px; font-weight: 500; color: #334155; outline: none; transition: border-color 0.2s; box-sizing: border-box;"
                               onfocus="this.style.borderColor='#3d39af'"
                               onblur="this.style.borderColor='#cbd5e1'"
@@ -192,9 +202,12 @@ interface Order {
                           <button
                             (click)="calculateByRate(o, o.customRate)"
                             title="Calcular"
+                            [disabled]="isAccepted"
                             style="background: white; border: 1.5px solid #cbd5e1; color: #475569; padding: 8px; border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px;"
-                            onmouseover="this.style.borderColor='#3d39af'; this.style.color='#3d39af'; this.style.background='#f1f5f9'"
-                            onmouseout="this.style.borderColor='#cbd5e1'; this.style.color='#475569'; this.style.background='white'"
+                            [style.opacity]="isAccepted ? '0.45' : '1'"
+                            [style.cursor]="isAccepted ? 'not-allowed' : 'pointer'"
+                            onmouseover="if(!this.disabled) { this.style.borderColor='#3d39af'; this.style.color='#3d39af'; this.style.background='#f1f5f9'; }"
+                            onmouseout="if(!this.disabled) { this.style.borderColor='#cbd5e1'; this.style.color='#475569'; this.style.background='white'; }"
                           >
                             <i class="fa-solid fa-calculator"></i>
                           </button>
@@ -222,10 +235,10 @@ interface Order {
                           </div>
                           <button
                             (click)="assignPrice(o.idOrder, o.selectedAmount)"
-                            [disabled]="!o.selectedAmount"
+                            [disabled]="!o.selectedAmount || isAccepted"
                             style="background-color: #10b981; color: white; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; transition: all 0.2s; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);"
-                            [style.opacity]="!o.selectedAmount ? '0.5' : '1'"
-                            [style.cursor]="!o.selectedAmount ? 'not-allowed' : 'pointer'"
+                            [style.opacity]="(!o.selectedAmount || isAccepted) ? '0.5' : '1'"
+                            [style.cursor]="(!o.selectedAmount || isAccepted) ? 'not-allowed' : 'pointer'"
                             onmouseover="if(!this.disabled) { this.style.backgroundColor='#059669'; this.style.transform='translateY(-1px)'; }"
                             onmouseout="if(!this.disabled) { this.style.backgroundColor='#10b981'; this.style.transform='none'; }"
                           >
@@ -532,9 +545,10 @@ export class OrdersListComponent implements OnInit {
         data.forEach((o) => {
           const detail = o.details?.[0];
           const hasPrice = o.details && (o.details[0]?.amount || o.details[0]?.price);
+          const isAccepted = o.status === 'aceptado';
 
           // Si NO tiene precio, lo calculamos y guardamos
-          if (!hasPrice && detail) {
+          if (!hasPrice && detail && !isAccepted) {
             const qty = detail.quantity || 1;
             const weight = Number.parseFloat(String(detail.unitWeight).replace(/[^\d.]/g, '')) || 0;
             const rate = 150.1; // Tu tarifa fija
@@ -608,11 +622,13 @@ export class OrdersListComponent implements OnInit {
     const map: Record<string, string> = {
       pendiente: 'Pendiente',
       confirmado: 'Confirmado',
+      esperando_aprobacion: 'Esperando Aprobación',
+      aceptado: 'Aceptado',
+      en_transito: 'En tránsito',
+      entregado: 'Entregado',
       en_proceso: 'En proceso',
       completado: 'Completado',
       cancelado: 'Cancelado',
-      esperando_aprobacion: 'Esperando Aprobación',
-      aceptado: 'Aceptado',
       denegado: 'Denegado'
     };
     return map[status] ?? status;
@@ -622,11 +638,13 @@ export class OrdersListComponent implements OnInit {
     const map: Record<string, string> = {
       pendiente: 'badge-resort badge-pendiente',
       confirmado: 'badge-resort badge-confirmada',
+      esperando_aprobacion: 'badge-resort badge-esperando',
+      aceptado: 'badge-resort badge-aceptado',
+      en_transito: 'badge-resort badge-activa',
+      entregado: 'badge-resort badge-finalizada',
       en_proceso: 'badge-resort badge-activa',
       completado: 'badge-resort badge-finalizada',
       cancelado: 'badge-resort badge-cancelada',
-      esperando_aprobacion: 'badge-resort badge-esperando',
-      aceptado: 'badge-resort badge-aceptado',
       denegado: 'badge-resort badge-cancelada'
     };
     return map[status] ?? 'badge-resort badge-pendiente';
@@ -687,3 +705,4 @@ export class OrdersListComponent implements OnInit {
     order.selectedAmount = actualRate * quantity * weight;
   }
 }
+

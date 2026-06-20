@@ -25,7 +25,6 @@ interface StatCard {
         <p class="date">{{ currentDate }}</p>
       </div>
 
-      <!-- Stats grid -->
       <div class="stats-grid">
         @for (s of stats(); track s.label) {
           <div class="stat-card">
@@ -40,13 +39,12 @@ interface StatCard {
         }
       </div>
 
-      <!-- Recent Trips -->
       <div class="recent-trips">
         <div class="section-header">
           <h2>Viajes recientes</h2>
           <a [routerLink]="['/driver/trips']" class="view-all">Ver todos ></a>
         </div>
-        
+
         @if (loadingTrips()) {
           <div class="empty-state">
             <i class="fa-solid fa-spinner fa-spin" style="margin-right: 8px;"></i> Cargando viajes…
@@ -295,9 +293,11 @@ interface StatCard {
     }
 
     .status-pendiente { background: #fef3c7; color: #b45309; }
+    .status-confirmado { background: #e0e7ff; color: #3730a3; }
+    .status-esperando_aprobacion { background: #e0f2fe; color: #0ea5e9; }
+    .status-aceptado { background: #f3e8ff; color: #7c3aed; }
     .status-en_transito { background: #dbeafe; color: #1d4ed8; }
     .status-entregado { background: #dcfce7; color: #166534; }
-    .status-confirmado { background: #e0e7ff; color: #3730a3; }
     .status-cancelado { background: #fee2e2; color: #b91c1c; }
   `]
 })
@@ -308,8 +308,6 @@ export class DriverDashboardComponent implements OnInit {
 
   readonly user = this.auth.user;
   readonly firstName = signal<string>('Usuario');
-  
-  // IMPORTANTE: Se ha omitido la tarjeta de 'En curso' de las estadísticas.
   readonly stats = signal<StatCard[]>([
     { label: 'Total viajes', value: 0, icon: 'fa-solid fa-truck-moving', color: '#6366f1', bg: '#ede9fe' },
     { label: 'Entregados', value: 0, icon: 'fa-regular fa-circle-check', color: '#10b981', bg: '#d1fae5' },
@@ -322,9 +320,8 @@ export class DriverDashboardComponent implements OnInit {
 
   ngOnInit(): void {
     const today = new Date();
-    // Utilizando locale dinámico si es necesario, o en su defecto un fallback.
     this.currentDate = this.datePipe.transform(today, 'EEEE, d \'de\' MMMM yyyy', '', 'en-US') || '';
-    
+
     if (this.user() && this.user()?.name) {
       const nameParts = this.user()!.name.split(' ');
       this.firstName.set(nameParts[0]);
@@ -347,15 +344,16 @@ export class DriverDashboardComponent implements OnInit {
         const orders = res.data || [];
         const total = orders.length;
         const entregados = orders.filter((o: any) => o.status === 'entregado').length;
-        const pendientes = orders.filter((o: any) => ['pendiente', 'confirmado', 'en_transito'].includes(o.status)).length;
-        
+        const pendientes = orders.filter((o: any) =>
+          ['pendiente', 'confirmado', 'esperando_aprobacion', 'aceptado', 'en_transito'].includes(o.status),
+        ).length;
+
         this.stats.set([
           { label: 'Total viajes', value: total, icon: 'fa-solid fa-truck-moving', color: '#6366f1', bg: '#ede9fe' },
           { label: 'Entregados', value: entregados, icon: 'fa-regular fa-circle-check', color: '#10b981', bg: '#d1fae5' },
           { label: 'Pendientes', value: pendientes, icon: 'fa-regular fa-clock', color: '#f59e0b', bg: '#fef3c7' },
         ]);
 
-        // Mostrar los últimos 5 viajes
         this.recentTrips.set(orders.slice(0, 5));
         this.loadingTrips.set(false);
       },
@@ -370,6 +368,8 @@ export class DriverDashboardComponent implements OnInit {
     const map: Record<string, string> = {
       pendiente: 'Pendiente',
       confirmado: 'Confirmado',
+      esperando_aprobacion: 'Esperando Aprobación',
+      aceptado: 'Aceptado',
       en_transito: 'En tránsito',
       entregado: 'Entregado',
       cancelado: 'Cancelado',

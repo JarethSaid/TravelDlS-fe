@@ -25,7 +25,6 @@ interface StatCard {
         <p class="date">{{ currentDate }}</p>
       </div>
 
-      <!-- Stats grid -->
       <div class="stats-grid">
         @for (s of stats(); track s.label) {
           <div class="stat-card">
@@ -40,7 +39,6 @@ interface StatCard {
         }
       </div>
 
-      <!-- Recent Orders -->
       <div class="recent-orders">
         <div class="section-header">
           <h2>Órdenes recientes</h2>
@@ -203,7 +201,6 @@ interface StatCard {
       height: 100px;
     }
 
-    /* Orders table */
     .orders-table-wrapper {
       overflow-x: auto;
     }
@@ -263,6 +260,36 @@ interface StatCard {
       color: #d97706;
     }
 
+    .status-confirmado {
+      background: #e0e7ff;
+      color: #3730a3;
+    }
+
+    .status-esperando_aprobacion {
+      background: #e0f2fe;
+      color: #0ea5e9;
+    }
+
+    .status-aceptado {
+      background: #f3e8ff;
+      color: #7c3aed;
+    }
+
+    .status-en_transito {
+      background: #dbeafe;
+      color: #2563eb;
+    }
+
+    .status-entregado {
+      background: #dcfce7;
+      color: #16a34a;
+    }
+
+    .status-cancelado {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+
     .status-completada {
       background: #dcfce7;
       color: #16a34a;
@@ -297,8 +324,8 @@ export class ClientDashboardComponent implements OnInit {
 
   readonly stats = signal<StatCard[]>([
     { label: 'Total órdenes', value: 0, icon: 'fa-solid fa-clipboard-list', color: '#6366f1', bg: '#ede9fe' },
-    { label: 'Completadas',   value: 0, icon: 'fa-regular fa-circle-check', color: '#10b981', bg: '#d1fae5' },
-    { label: 'Pendientes',    value: 0, icon: 'fa-regular fa-clock',        color: '#f59e0b', bg: '#fef3c7' },
+    { label: 'Finalizadas', value: 0, icon: 'fa-regular fa-circle-check', color: '#10b981', bg: '#d1fae5' },
+    { label: 'Pendientes', value: 0, icon: 'fa-regular fa-clock', color: '#f59e0b', bg: '#fef3c7' },
   ]);
 
   currentDate = '';
@@ -324,18 +351,19 @@ export class ClientDashboardComponent implements OnInit {
 
     this.clientService.getOrders({ idClient: u.idClient, perPage: 5 }).subscribe({
       next: (res) => {
-        this.recentOrders.set(res.data);
+        const orders = res.data ?? [];
+        this.recentOrders.set(orders);
 
-        const total = res.meta.total;
-        const completed = res.data.filter(o => o.status === 'completada').length;
-        const pending = res.data.filter(o => o.status === 'pendiente').length;
+        const total = res.meta?.total ?? orders.length;
+        const finalizadas = orders.filter((o) => o.status === 'entregado').length;
+        const pendientes = orders.filter((o) =>
+          ['pendiente', 'confirmado', 'esperando_aprobacion'].includes(o.status),
+        ).length;
 
-        // Si tenemos acceso a todas las páginas, usamos total del meta
-        // De lo contrario contamos lo que tenemos para las cards
         this.stats.set([
           { label: 'Total órdenes', value: total, icon: 'fa-solid fa-clipboard-list', color: '#6366f1', bg: '#ede9fe' },
-          { label: 'Completadas',   value: completed, icon: 'fa-regular fa-circle-check', color: '#10b981', bg: '#d1fae5' },
-          { label: 'Pendientes',    value: pending, icon: 'fa-regular fa-clock', color: '#f59e0b', bg: '#fef3c7' },
+          { label: 'Finalizadas', value: finalizadas, icon: 'fa-regular fa-circle-check', color: '#10b981', bg: '#d1fae5' },
+          { label: 'Pendientes', value: pendientes, icon: 'fa-regular fa-clock', color: '#f59e0b', bg: '#fef3c7' },
         ]);
 
         this.loadingOrders.set(false);
@@ -349,6 +377,12 @@ export class ClientDashboardComponent implements OnInit {
   statusLabel(status: string): string {
     const map: Record<string, string> = {
       pendiente: 'Pendiente',
+      confirmado: 'Confirmado',
+      esperando_aprobacion: 'Esperando Aprobación',
+      aceptado: 'Aceptado',
+      en_transito: 'En tránsito',
+      entregado: 'Entregado',
+      cancelado: 'Cancelado',
       completada: 'Completada',
       cancelada: 'Cancelada',
       en_proceso: 'En proceso',
