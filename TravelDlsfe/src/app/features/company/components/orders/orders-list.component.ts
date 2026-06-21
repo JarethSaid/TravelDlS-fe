@@ -171,10 +171,10 @@ interface Order {
                     </td>
 
                     <td style="min-width: 220px;">
-                      @let isAccepted = o.status === 'aceptado';
+                      @let priceLocked = isPriceLocked(o);
                       <div
-                        [style.background]="isAccepted ? '#faf5ff' : '#f8fafc'"
-                        [style.border]="isAccepted ? '1px solid #ddd6fe' : '1px solid #e2e8f0'"
+                        [style.background]="priceLocked ? '#faf5ff' : '#f8fafc'"
+                        [style.border]="priceLocked ? '1px solid #ddd6fe' : '1px solid #e2e8f0'"
                         style="border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; transition: all 0.2s;"
                         onmouseover="if(this.style.background !== 'rgb(250, 245, 255)') { this.style.borderColor='#cbd5e1'; this.style.boxShadow='0 4px 6px -1px rgba(0, 0, 0, 0.05)'; }"
                         onmouseout="if(this.style.background !== 'rgb(250, 245, 255)') { this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'; }"
@@ -191,9 +191,9 @@ interface Order {
                               min="0"
                               [(ngModel)]="o.customRate"
                               placeholder="Tarifa por peso"
-                              [disabled]="isAccepted"
-                              [style.backgroundColor]="isAccepted ? '#f5f3ff' : 'white'"
-                              [style.cursor]="isAccepted ? 'not-allowed' : 'text'"
+                              [disabled]="priceLocked"
+                              [style.backgroundColor]="priceLocked ? '#f5f3ff' : 'white'"
+                              [style.cursor]="priceLocked ? 'not-allowed' : 'text'"
                               style="width: 100%; padding: 8px 8px 8px 30px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-family: inherit; font-size: 13px; font-weight: 500; color: #334155; outline: none; transition: border-color 0.2s; box-sizing: border-box;"
                               onfocus="this.style.borderColor='#3d39af'"
                               onblur="this.style.borderColor='#cbd5e1'"
@@ -202,10 +202,10 @@ interface Order {
                           <button
                             (click)="calculateByRate(o, o.customRate)"
                             title="Calcular"
-                            [disabled]="isAccepted"
+                            [disabled]="priceLocked"
                             style="background: white; border: 1.5px solid #cbd5e1; color: #475569; padding: 8px; border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px;"
-                            [style.opacity]="isAccepted ? '0.45' : '1'"
-                            [style.cursor]="isAccepted ? 'not-allowed' : 'pointer'"
+                            [style.opacity]="priceLocked ? '0.45' : '1'"
+                            [style.cursor]="priceLocked ? 'not-allowed' : 'pointer'"
                             onmouseover="if(!this.disabled) { this.style.borderColor='#3d39af'; this.style.color='#3d39af'; this.style.background='#f1f5f9'; }"
                             onmouseout="if(!this.disabled) { this.style.borderColor='#cbd5e1'; this.style.color='#475569'; this.style.background='white'; }"
                           >
@@ -235,10 +235,10 @@ interface Order {
                           </div>
                           <button
                             (click)="assignPrice(o.idOrder, o.selectedAmount)"
-                            [disabled]="!o.selectedAmount || isAccepted"
+                            [disabled]="!o.selectedAmount || priceLocked"
                             style="background-color: #10b981; color: white; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; transition: all 0.2s; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);"
-                            [style.opacity]="(!o.selectedAmount || isAccepted) ? '0.5' : '1'"
-                            [style.cursor]="(!o.selectedAmount || isAccepted) ? 'not-allowed' : 'pointer'"
+                            [style.opacity]="(!o.selectedAmount || priceLocked) ? '0.5' : '1'"
+                            [style.cursor]="(!o.selectedAmount || priceLocked) ? 'not-allowed' : 'pointer'"
                             onmouseover="if(!this.disabled) { this.style.backgroundColor='#059669'; this.style.transform='translateY(-1px)'; }"
                             onmouseout="if(!this.disabled) { this.style.backgroundColor='#10b981'; this.style.transform='none'; }"
                           >
@@ -545,10 +545,10 @@ export class OrdersListComponent implements OnInit {
         data.forEach((o) => {
           const detail = o.details?.[0];
           const hasPrice = o.details && (o.details[0]?.amount || o.details[0]?.price);
-          const isAccepted = o.status === 'aceptado';
+          const priceLocked = this.isPriceLocked(o);
 
           // Si NO tiene precio, lo calculamos y guardamos
-          if (!hasPrice && detail && !isAccepted) {
+          if (!hasPrice && detail && !priceLocked) {
             const qty = detail.quantity || 1;
             const weight = Number.parseFloat(String(detail.unitWeight).replace(/[^\d.]/g, '')) || 0;
             const rate = 150.1; // Tu tarifa fija
@@ -665,6 +665,8 @@ export class OrdersListComponent implements OnInit {
 
   assignPrice(idOrder: number, amount?: number): void {
     if (amount === undefined || amount === null) return;
+    const order = this.orders().find((item) => item.idOrder === idOrder);
+    if (order && this.isPriceLocked(order)) return;
 
     this.orderService.assignPrice(idOrder, amount).subscribe({
       next: (res) => {
@@ -690,7 +692,13 @@ export class OrdersListComponent implements OnInit {
     return name.replace(/\s*\(.*?\)\s*$/, '').trim();
   }
 
+  isPriceLocked(order: Order): boolean {
+    return ['aceptado', 'en_transito', 'entregado'].includes(order.status);
+  }
+
   calculateByRate(order: Order, rate: number | undefined): void {
+    if (this.isPriceLocked(order)) return;
+
     const actualRate = Math.max(0, rate || 0);
 
     const detail = order.details?.[0];
