@@ -82,25 +82,39 @@ interface UserOption {
               type="text"
               formControlName="ruc"
               placeholder="Ej: 20123456789"
+              maxlength="20"
             />
             @if (form.controls['ruc'].invalid && form.controls['ruc'].touched) {
-              <span class="error-text">RUC requerido (11 dígitos)</span>
+              <span class="error-text">RUC requerido (máximo 20 dígitos)</span>
             }
           </div>
 
           <div class="campo">
             <label>Foto / Logo <span class="optional">(opcional)</span></label>
-            <div class="file-upload-wrapper">
+            <div class="upload-zone" (click)="fileInput.click()" [class.upload-zone--has-image]="photoPreviewUrl() || company?.photoUrl">
               <input
+                #fileInput
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
                 (change)="onFileSelected($event)"
-                class="file-input"
+                style="display: none;"
               />
-              @if (photoPreviewUrl()) {
-                <img [src]="photoPreviewUrl()!" alt="Preview" class="photo-preview" />
-              } @else if (company?.photoUrl) {
-                <img [src]="company!.photoUrl" alt="Foto actual" class="photo-preview" />
+              @if (photoPreviewUrl() || company?.photoUrl) {
+                <div class="upload-preview">
+                  <img [src]="photoPreviewUrl() || company!.photoUrl" alt="Preview" class="photo-preview" />
+                  <div class="upload-preview-overlay">
+                    <i class="fa-solid fa-camera"></i>
+                    <span>Cambiar foto</span>
+                  </div>
+                </div>
+              } @else {
+                <div class="upload-placeholder">
+                  <div class="upload-icon-wrap">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                  </div>
+                  <p class="upload-title">Seleccionar imagen</p>
+                  <p class="upload-hint">JPG, PNG o WEBP &middot; M&aacute;x 5MB</p>
+                </div>
               }
             </div>
           </div>
@@ -131,21 +145,109 @@ interface UserOption {
     </div>
   `,
   styles: `
-    .file-upload-wrapper {
+    .upload-zone {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      min-height: 140px;
+      border: 2px dashed #c7d2fe;
+      border-radius: 16px;
+      background: #f5f3ff;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      overflow: hidden;
+      position: relative;
+    }
+    .upload-zone:hover {
+      border-color: #3d39af;
+      background: #ede9fe;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(61, 57, 175, 0.1);
+    }
+    .upload-zone--has-image {
+      border-style: solid;
+      border-color: #a5b4fc;
+      background: #f8fafc;
+      min-height: 120px;
+    }
+    .upload-placeholder {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      align-items: center;
+      gap: 6px;
+      padding: 24px;
+      text-align: center;
     }
-    .file-input {
+    .upload-icon-wrap {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: #e0e7ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      color: #3d39af;
+      margin-bottom: 4px;
+      transition: all 0.2s;
+    }
+    .upload-zone:hover .upload-icon-wrap {
+      background: #c7d2fe;
+      transform: scale(1.08);
+    }
+    .upload-title {
+      margin: 0;
       font-size: 14px;
-      color: #64748b;
+      font-weight: 700;
+      color: #3d39af;
+    }
+    .upload-hint {
+      margin: 0;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+    .upload-preview {
+      position: relative;
+      width: 100%;
+      height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .photo-preview {
-      width: 80px;
-      height: 80px;
-      border-radius: 8px;
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
       object-fit: cover;
-      border: 1px solid #e2e8f0;
+      border: 3px solid #a5b4fc;
+      box-shadow: 0 4px 12px rgba(61, 57, 175, 0.15);
+    }
+    .upload-preview-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(61, 57, 175, 0.0);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      color: white;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 16px;
+      opacity: 0;
+      transition: all 0.2s;
+    }
+    .upload-preview-overlay i {
+      font-size: 20px;
+    }
+    .upload-zone:hover .upload-preview-overlay {
+      opacity: 1;
+      background: rgba(61, 57, 175, 0.45);
+    }
+    .upload-zone:hover .photo-preview {
+      filter: brightness(0.75);
     }
   `,
 })
@@ -170,7 +272,7 @@ export class CompanyFormComponent implements OnInit {
   readonly form = this.fb.group({
     userId:       [null as number | null],
     businessName: ['', [Validators.required, Validators.minLength(2)]],
-    ruc:          ['', [Validators.required, Validators.pattern(/^\\d{11}$/)]],
+    ruc:          ['', [Validators.required, Validators.maxLength(20)]],
   });
 
   ngOnInit(): void {

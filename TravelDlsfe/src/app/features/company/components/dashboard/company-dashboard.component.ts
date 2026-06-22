@@ -93,17 +93,32 @@ import { forkJoin } from 'rxjs';
           </div>
         </div>
 
-        <!-- Distribución de Pedidos -->
+        <!-- Conductores con más viajes -->
         <div class="panel-card">
           <div class="panel-header">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.27 6.96 8.73 5.05 8.73-5.05"/><path d="M12 22.08V12"/></svg>
-            <h2>Próximos Viajes</h2>
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #22c55e;"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10"/><path d="M12 4v13"/><path d="M4 8h16"/></svg>
+            <h2>Conductores con Más Viajes</h2>
           </div>
-          <div class="panel-content panel-content--empty">
-            <div class="empty-state">
-              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
-              <p>No hay viajes programados próximamente</p>
-            </div>
+          
+          <div class="panel-content" [class.loading-content]="loading()">
+            @if (loading()) {
+              <div class="chart-skeleton"></div>
+            } @else {
+              <div class="top-drivers-list">
+                @for (driver of topDrivers(); track driver.name; let i = $index) {
+                  <div class="top-driver-item">
+                    <div class="driver-rank">#{{ i + 1 }}</div>
+                    <div class="driver-info">
+                      <div class="driver-name">{{ driver.name }}</div>
+                      <div class="driver-trips">{{ driver.trips }} viajes</div>
+                    </div>
+                    <div class="driver-bar-wrap">
+                      <div class="driver-bar" [style.width.%]="driver.pct"></div>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
           </div>
         </div>
       </div>
@@ -221,7 +236,7 @@ import { forkJoin } from 'rxjs';
     /* Panels Grid */
     .panels-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
       gap: 24px;
     }
 
@@ -229,7 +244,7 @@ import { forkJoin } from 'rxjs';
       background: white;
       border-radius: 20px;
       padding: 32px;
-      min-height: 380px;
+      min-height: 320px;
       box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
       display: flex;
       flex-direction: column;
@@ -263,24 +278,24 @@ import { forkJoin } from 'rxjs';
     /* Bar Chart */
     .bar-chart-container {
       display: flex;
-      justify-content: space-around;
+      justify-content: center;
       align-items: flex-end;
-      height: 200px;
+      height: 240px;
       padding-top: 20px;
-      gap: 20px;
+      gap: 48px;
     }
 
     .bar-item {
       display: flex;
       flex-direction: column;
       align-items: center;
-      flex: 1;
-      max-width: 80px;
+      flex: 0 0 auto;
+      width: 80px;
     }
 
     .bar-wrapper {
       width: 100%;
-      height: 160px;
+      height: 180px;
       background: #f8fafc;
       border-radius: 12px;
       display: flex;
@@ -308,10 +323,68 @@ import { forkJoin } from 'rxjs';
     }
 
     .bar-label {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
       color: #64748b;
       text-align: center;
+    }
+
+    /* Top Drivers */
+    .top-drivers-list {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      flex: 1;
+      justify-content: center;
+      padding-bottom: 10px;
+    }
+
+    .top-driver-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .driver-rank {
+      font-size: 16px;
+      font-weight: 800;
+      color: #cbd5e1;
+      width: 28px;
+    }
+
+    .driver-info {
+      width: 140px;
+      flex-shrink: 0;
+    }
+
+    .driver-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1e293b;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .driver-trips {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    .driver-bar-wrap {
+      flex: 1;
+      height: 10px;
+      background: #f1f5f9;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+
+    .driver-bar {
+      height: 100%;
+      background: #22c55e;
+      border-radius: 5px;
+      transition: width 0.4s ease;
     }
 
     /* Skeletons */
@@ -382,6 +455,8 @@ export class CompanyDashboardComponent implements OnInit {
     inactive: 0
   });
 
+  topDrivers = signal<{ name: string; trips: number; pct: number }[]>([]);
+
   driverStatusData = computed(() => {
     const counts = this.driverCounts();
     const total = counts.available + counts.ontrip + counts.offline + counts.inactive || 1;
@@ -418,7 +493,7 @@ export class CompanyDashboardComponent implements OnInit {
     // Fetch stats in parallel
     const driverParams = new HttpParams().set('idCompany', companyId).set('perPage', 1000);
     const truckParams = { idCompany: companyId, perPage: 1 };
-    const orderParams = new HttpParams().set('idCompany', companyId).set('perPage', 1);
+    const orderParams = new HttpParams().set('idCompany', companyId).set('perPage', 1000);
 
     forkJoin({
       drivers: this.driverService.getDrivers(driverParams),
@@ -444,6 +519,56 @@ export class CompanyDashboardComponent implements OnInit {
         });
 
         this.driverCounts.set(counts);
+
+        const ordersList = res.orders.data || [];
+        const driverTripsCount: Record<number, number> = {};
+        ordersList.forEach((o: any) => {
+          const idDriver = o.details?.[0]?.idDriver;
+          if (idDriver) {
+            driverTripsCount[idDriver] = (driverTripsCount[idDriver] || 0) + 1;
+          }
+        });
+
+        // Process Top Drivers
+        const mappedDrivers: { name: string; trips: number }[] = [];
+        
+        for (const d of driversList) {
+          let tripsCount = driverTripsCount[d.idDriver || d.id] || 0;
+          if (tripsCount === 0) {
+            if (typeof d.tripsCount === 'number') tripsCount = d.tripsCount;
+            else if (typeof d.ordersCount === 'number') tripsCount = d.ordersCount;
+            else if (d.trips && Array.isArray(d.trips)) tripsCount = d.trips.length;
+            else if (d.orders && Array.isArray(d.orders)) tripsCount = d.orders.length;
+          }
+
+          let driverName = '';
+          if (d.user?.name) driverName = d.user.name;
+          else if (d.name) driverName = d.name;
+          else if (d.user?.fullName) driverName = d.user.fullName;
+          else if (d.fullName) driverName = d.fullName;
+          else if (d.user?.email) driverName = d.user.email;
+          else if (d.email) driverName = d.email;
+          else driverName = `Conductor #${d.idDriver || d.id || Math.floor(Math.random() * 1000)}`;
+
+          driverName = driverName.split(' (LIC-')[0].split(' (Pass')[0].split('(')[0].trim();
+
+          mappedDrivers.push({
+            name: driverName,
+            trips: tripsCount
+          });
+        }
+
+        mappedDrivers.sort((a, b) => b.trips - a.trips);
+        const top5 = mappedDrivers.slice(0, 5);
+        const maxTrips = Math.max(...top5.map(d => d.trips), 1);
+
+        this.topDrivers.set(
+          top5.map(d => ({
+            name: d.name,
+            trips: d.trips,
+            pct: (d.trips / maxTrips) * 100
+          }))
+        );
         
         this.stats.set({
           drivers: res.drivers.meta?.total || driversList.length,

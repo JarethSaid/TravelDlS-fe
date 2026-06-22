@@ -19,8 +19,8 @@ import {
   stripLicenseFromDisplayName,
 } from '../../../../shared/utils/driver-display.util';
 
-const PENDING_NAMES_STORAGE_KEY = 'translogix_company_pending_driver_names';
-const PENDING_USER_LINK_PREFIX = 'translogix_driver_user_link_';
+const PENDING_NAMES_STORAGE_KEY = 'TravelDLS_company_pending_driver_names';
+const PENDING_USER_LINK_PREFIX = 'TravelDLS_driver_user_link_';
 
 type PendingNamesByCompany = Record<string, Record<string, string>>;
 
@@ -888,7 +888,7 @@ export class DriversListComponent implements OnInit {
   private mapRegisterErrorMessage(raw: string): string {
     if (/already exists|ya existe/i.test(raw)) {
       return (
-        'Ese correo o nombre de usuario ya está registrado en TransLogix. ' +
+        'Ese correo o nombre de usuario ya está registrado en TravelDLS. ' +
         'Usa un correo distinto y, si el nombre ya existe, modifícalo (por ejemplo añadiendo la licencia o iniciales). ' +
         'Si ya intentaste crear la cuenta antes, vuelve a pulsar «Crear y vincular» para reintentar solo la vinculación.'
       );

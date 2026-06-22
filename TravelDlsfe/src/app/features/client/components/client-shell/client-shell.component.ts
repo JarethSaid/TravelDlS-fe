@@ -31,7 +31,7 @@ interface NavItem {
           <div class="brand-logo">
             <i class="fa-solid fa-truck-fast"></i>
           </div>
-          <span class="brand-name">TransLogix</span>
+          <span class="brand-name">TravelDLS</span>
           <button class="btn-collapse hidden-mobile" (click)="toggleSidebar()">
             <i class="fa-solid" [class.fa-angle-left]="!isSidebarCollapsed()" [class.fa-angle-right]="isSidebarCollapsed()"></i>
           </button>
