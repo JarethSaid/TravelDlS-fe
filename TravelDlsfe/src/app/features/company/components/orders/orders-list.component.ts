@@ -20,6 +20,8 @@ interface Order {
   selectedDriverId?: number;
   selectedAmount?: number;
   customRate?: number;
+  editingDriver?: boolean;
+  newDriverId?: number;
 }
 
 @Component({
@@ -50,13 +52,10 @@ interface Order {
           <select class="filter-select" [(ngModel)]="statusFilter" (ngModelChange)="onSearch()">
             <option value="">Todos los estados</option>
             <option value="pendiente">Pendiente</option>
-            <option value="confirmado">Confirmado</option>
             <option value="esperando_aprobacion">Esperando aprobación</option>
             <option value="aceptado">Aceptado</option>
             <option value="en_transito">En tránsito</option>
             <option value="entregado">Entregado</option>
-            <option value="en_proceso">En proceso</option>
-            <option value="completado">Completado</option>
             <option value="cancelado">Cancelado</option>
           </select>
           <div class="per-page-control">
@@ -123,30 +122,41 @@ interface Order {
                     <td>{{ o.createdAt | date: 'dd/MM/yyyy' }}</td>
 
                     <td>
-                      @if (o.details && o.details[0] && o.details[0].idDriver) {
-                        <span style="font-weight: 500; color: #334155;">{{
-                          cleanDriverName(
-                            o.details[0]?.driver?.user?.name ||
-                              o.details[0]?.driver?.name ||
-                              getDriverName(o.details[0].idDriver)
-                          )
-                        }}</span>
-                      } @else if (o.details && o.details[0]) {
-                        <div style="display:flex; gap:8px; align-items:center;">
-                          <div
-                            style="position: relative; display: flex; align-items: center; min-width: 200px;"
+                      @if (o.details && o.details[0] && o.details[0].idDriver && !o.editingDriver) {
+                        <!-- Conductor ya asignado: mostrar nombre + botón editar -->
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                          <span style="font-weight: 500; color: #334155;">{{
+                            cleanDriverName(
+                              o.details[0]?.driver?.user?.name ||
+                                o.details[0]?.driver?.name ||
+                                getDriverName(o.details[0].idDriver)
+                            )
+                          }}</span>
+                          <button
+                            (click)="startEditDriver(o)"
+                            title="Cambiar conductor"
+                            style="background: #f1f5f9; border: 1.5px solid #e2e8f0; color: #3d39af; width: 30px; height: 30px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; transition: all 0.2s;"
+                            onmouseover="this.style.background='#e0e7ff'; this.style.borderColor='#a5b4fc';"
+                            onmouseout="this.style.background='#f1f5f9'; this.style.borderColor='#e2e8f0';"
                           >
+                            <i class="fa-solid fa-pen-to-square"></i>
+                          </button>
+                        </div>
+                      } @else if (o.details && o.details[0] && (o.editingDriver || !o.details[0].idDriver)) {
+                        <!-- Selector para asignar / reasignar conductor -->
+                        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                          <div style="position: relative; display: flex; align-items: center; min-width: 200px;">
                             <i
                               class="fa-solid fa-user-tie"
                               style="position: absolute; left: 14px; color: #64748b; font-size: 14px; pointer-events: none;"
                             ></i>
                             <select
-                              [(ngModel)]="o.selectedDriverId"
+                              [(ngModel)]="o.newDriverId"
                               autocomplete="off"
-                              style="width: 100%; border-radius: 12px; border: 1.5px solid #cbd5e1; padding: 10px 14px 10px 38px; font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; box-sizing: border-box; background-color: #f8fafc; color: #1e293b; appearance: none; -webkit-appearance: none; background-image: url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 20 20%22%3E%3Cpath stroke=%22%236b7280%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-width=%221.5%22 d=%22M6 8l4 4 4-4%22/%3E%3C/svg%3E'); background-position: right 12px center; background-repeat: no-repeat; background-size: 18px; transition: all 0.2s;"
+                              style="width: 100%; border-radius: 12px; border: 1.5px solid #a5b4fc; padding: 10px 14px 10px 38px; font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; box-sizing: border-box; background-color: #f8fafc; color: #1e293b; appearance: none; -webkit-appearance: none; background-image: url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 20 20%22%3E%3Cpath stroke=%22%236b7280%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-width=%221.5%22 d=%22M6 8l4 4 4-4%22/%3E%3C/svg%3E'); background-position: right 12px center; background-repeat: no-repeat; background-size: 18px; transition: all 0.2s;"
                             >
                               <option [ngValue]="undefined" disabled selected>
-                                Seleccione Conductor
+                                {{ o.editingDriver ? 'Seleccione nuevo conductor' : 'Seleccione Conductor' }}
                               </option>
                               @for (d of drivers(); track d.idDriver) {
                                 <option [ngValue]="d.idDriver">
@@ -156,95 +166,78 @@ interface Order {
                             </select>
                           </div>
                           <button
-                            [disabled]="!o.selectedDriverId"
-                            (click)="assignDriver(o.idOrder, o.selectedDriverId)"
-                            style="padding: 10px 16px; border-radius: 12px; font-weight: 600; font-size: 13px; background: #3d39af; color: white; border: none; display: flex; align-items: center; gap: 6px; cursor: pointer;"
-                            [style.opacity]="!o.selectedDriverId ? '0.5' : '1'"
-                            [style.cursor]="!o.selectedDriverId ? 'not-allowed' : 'pointer'"
+                            [disabled]="!o.newDriverId"
+                            (click)="confirmDriverEdit(o)"
+                            style="padding: 10px 16px; border-radius: 12px; font-weight: 600; font-size: 13px; background: #3d39af; color: white; border: none; display: flex; align-items: center; gap: 6px; cursor: pointer; flex-shrink: 0;"
+                            [style.opacity]="!o.newDriverId ? '0.5' : '1'"
+                            [style.cursor]="!o.newDriverId ? 'not-allowed' : 'pointer'"
                           >
-                            <i class="fa-solid fa-check"></i> Asignar
+                            <i class="fa-solid fa-check"></i> {{ o.editingDriver ? 'Cambiar' : 'Asignar' }}
                           </button>
+                          @if (o.editingDriver) {
+                            <button
+                              (click)="cancelEditDriver(o)"
+                              style="padding: 10px 14px; border-radius: 12px; font-weight: 600; font-size: 13px; background: white; color: #64748b; border: 1.5px solid #cbd5e1; display: flex; align-items: center; gap: 6px; cursor: pointer; flex-shrink: 0;"
+                              onmouseover="this.style.background='#f8fafc';"
+                              onmouseout="this.style.background='white';"
+                            >
+                              <i class="fa-solid fa-xmark"></i> Cancelar
+                            </button>
+                          }
                         </div>
                       } @else {
                         <span style="color:#6c757d; font-style:italic;">Sin detalles</span>
                       }
                     </td>
 
-                    <td style="min-width: 220px;">
+                    <td style="min-width: 150px;">
                       @let priceLocked = isPriceLocked(o);
                       <div
-                        [style.background]="priceLocked ? '#faf5ff' : '#f8fafc'"
-                        [style.border]="priceLocked ? '1px solid #ddd6fe' : '1px solid #e2e8f0'"
-                        style="border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; transition: all 0.2s;"
-                        onmouseover="if(this.style.background !== 'rgb(250, 245, 255)') { this.style.borderColor='#cbd5e1'; this.style.boxShadow='0 4px 6px -1px rgba(0, 0, 0, 0.05)'; }"
-                        onmouseout="if(this.style.background !== 'rgb(250, 245, 255)') { this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'; }"
+                        style="display: flex; flex-direction: column; gap: 8px; align-items: flex-start;"
                       >
-                        <!-- Fila de Cálculo -->
-                        <div style="display: flex; gap: 8px; align-items: center;">
-                          <div style="position: relative; flex: 1;">
-                            <span
-                              style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 12px; font-weight: 600;"
-                              >C$</span
-                            >
-                            <input
-                              type="number"
-                              min="0"
-                              [(ngModel)]="o.customRate"
-                              placeholder="Tarifa por peso"
-                              [disabled]="priceLocked"
-                              [style.backgroundColor]="priceLocked ? '#f5f3ff' : 'white'"
-                              [style.cursor]="priceLocked ? 'not-allowed' : 'text'"
-                              style="width: 100%; padding: 8px 8px 8px 30px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-family: inherit; font-size: 13px; font-weight: 500; color: #334155; outline: none; transition: border-color 0.2s; box-sizing: border-box;"
-                              onfocus="this.style.borderColor='#3d39af'"
-                              onblur="this.style.borderColor='#cbd5e1'"
-                            />
-                          </div>
-                          <button
-                            (click)="calculateByRate(o, o.customRate)"
-                            title="Calcular"
-                            [disabled]="priceLocked"
-                            style="background: white; border: 1.5px solid #cbd5e1; color: #475569; padding: 8px; border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px;"
-                            [style.opacity]="priceLocked ? '0.45' : '1'"
-                            [style.cursor]="priceLocked ? 'not-allowed' : 'pointer'"
-                            onmouseover="if(!this.disabled) { this.style.borderColor='#3d39af'; this.style.color='#3d39af'; this.style.background='#f1f5f9'; }"
-                            onmouseout="if(!this.disabled) { this.style.borderColor='#cbd5e1'; this.style.color='#475569'; this.style.background='white'; }"
-                          >
-                            <i class="fa-solid fa-calculator"></i>
-                          </button>
-                        </div>
-
-                        <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 0;" />
-
-                        <!-- Fila de Resultado y Asignación -->
-                        <div
-                          style="display: flex; justify-content: space-between; align-items: center;"
-                        >
+                        @if (
+                          o.selectedAmount ||
+                          (o.details && o.details[0] && (o.details[0].amount || o.details[0].price))
+                        ) {
                           <div style="display: flex; flex-direction: column;">
                             <span
-                              style="font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;"
-                              >Total</span
+                              style="font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase;"
+                              >Precio asignado</span
                             >
                             <span style="font-weight: 800; color: #3d39af; font-size: 15px;">
                               C$
                               {{
-                                o.selectedAmount
-                                  ? (o.selectedAmount | number: '1.2-2' : 'en-US')
-                                  : '0.00'
+                                o.selectedAmount ||
+                                  (o.details &&
+                                    o.details[0] &&
+                                    (o.details[0].amount || o.details[0].price))
+                                  | number: '1.2-2' : 'en-US'
                               }}
                             </span>
                           </div>
-                          <button
-                            (click)="assignPrice(o.idOrder, o.selectedAmount)"
-                            [disabled]="!o.selectedAmount || priceLocked"
-                            style="background-color: #10b981; color: white; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; transition: all 0.2s; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);"
-                            [style.opacity]="(!o.selectedAmount || priceLocked) ? '0.5' : '1'"
-                            [style.cursor]="(!o.selectedAmount || priceLocked) ? 'not-allowed' : 'pointer'"
-                            onmouseover="if(!this.disabled) { this.style.backgroundColor='#059669'; this.style.transform='translateY(-1px)'; }"
-                            onmouseout="if(!this.disabled) { this.style.backgroundColor='#10b981'; this.style.transform='none'; }"
+                        } @else {
+                          <span style="color: #64748b; font-size: 13px; font-style: italic;"
+                            >Sin asignar</span
                           >
-                            <i class="fa-solid fa-check"></i> Asignar precio
-                          </button>
-                        </div>
+                        }
+
+                        <button
+                          (click)="openPriceModal(o)"
+                          [disabled]="priceLocked"
+                          style="background: #10b981; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; transition: all 0.2s;"
+                          [style.opacity]="priceLocked ? '0.5' : '1'"
+                          [style.cursor]="priceLocked ? 'not-allowed' : 'pointer'"
+                        >
+                          <i class="fa-solid fa-calculator"></i>
+                          {{
+                            o.selectedAmount ||
+                            (o.details &&
+                              o.details[0] &&
+                              (o.details[0].amount || o.details[0].price))
+                              ? 'Editar precio'
+                              : 'Asignar precio'
+                          }}
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -392,20 +385,29 @@ interface Order {
                           <span
                             style="font-size: 12px; background: #f1f5f9; padding: 2px 8px; border-radius: 6px; color: #64748b; font-weight: 500;"
                           >
-                            <i class="fa-solid fa-cubes" style="margin-right: 4px; font-size: 10px; color: #94a3b8;"></i>
+                            <i
+                              class="fa-solid fa-cubes"
+                              style="margin-right: 4px; font-size: 10px; color: #94a3b8;"
+                            ></i>
                             Cant: {{ det.quantity ?? 1 }}
                           </span>
                           <span
                             style="font-size: 12px; background: #f1f5f9; padding: 2px 8px; border-radius: 6px; color: #64748b; font-weight: 500;"
                           >
-                            <i class="fa-solid fa-weight-hanging" style="margin-right: 4px; font-size: 10px; color: #94a3b8;"></i>
+                            <i
+                              class="fa-solid fa-weight-hanging"
+                              style="margin-right: 4px; font-size: 10px; color: #94a3b8;"
+                            ></i>
                             Peso: {{ det.unitWeight ?? 'N/A' }}
                           </span>
                           @if (det.typePackaging) {
                             <span
                               style="font-size: 12px; background: #f1f5f9; padding: 2px 8px; border-radius: 6px; color: #64748b; font-weight: 500;"
                             >
-                              <i class="fa-solid fa-box" style="margin-right: 4px; font-size: 10px; color: #94a3b8;"></i>
+                              <i
+                                class="fa-solid fa-box"
+                                style="margin-right: 4px; font-size: 10px; color: #94a3b8;"
+                              ></i>
                               {{ det.typePackaging }}
                             </span>
                           }
@@ -415,7 +417,10 @@ interface Order {
                           <p
                             style="margin: 6px 0 0 0; font-size: 12px; color: #94a3b8; display: flex; align-items: center; gap: 5px;"
                           >
-                            <i class="fa-solid fa-location-dot" style="font-size: 11px; color: #3d39af;"></i>
+                            <i
+                              class="fa-solid fa-location-dot"
+                              style="font-size: 11px; color: #3d39af;"
+                            ></i>
                             {{ det.deliveryAddress }}
                           </p>
                         }
@@ -445,6 +450,157 @@ interface Order {
               style="background: #3d39af; color: white; border: none; padding: 10px 20px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;"
             >
               Entendido
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
+    @if (showPriceModal() && priceOrder()) {
+      <div
+        style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.4); display: flex; align-items: center; justify-content: center; z-index: 10000; backdrop-filter: blur(4px);"
+      >
+        <div
+          style="background: white; width: 100%; max-width: 480px; border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); overflow: hidden; display: flex; flex-direction: column; animation: fadeIn 0.2s ease-out;"
+        >
+          <div
+            style="padding: 20px 24px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; background: #ffffff;"
+          >
+            <h2 style="margin: 0; font-size: 20px; font-weight: 700; color: #1e293b;">
+              Asignar Precio
+            </h2>
+            <button
+              (click)="closePriceModal()"
+              style="background: #e2e8f0; border: none; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #475569; cursor: pointer; transition: all 0.2s;"
+            >
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <div
+            style="padding: 24px; display: flex; flex-direction: column; gap: 24px; background: #ffffff;"
+          >
+            <p
+              style="margin: 0; font-size: 15px; color: #64748b; line-height: 1.5; background: #f0fdf4; padding: 12px 16px; border-radius: 10px; border-left: 4px solid #10b981;"
+            >
+              <i class="fa-solid fa-circle-info" style="color: #10b981; margin-right: 8px;"></i>
+              Ingresa la <strong>tarifa base</strong>. El sistema la multiplicará automáticamente
+              por el <strong>peso</strong> y la <strong>cantidad</strong> que ya están registrados
+              en este pedido.
+            </p>
+
+            <div
+              style="background: #f8fafc; padding: 24px; border-radius: 16px; display: flex; flex-direction: column; gap: 20px; border: 1px solid #e2e8f0; position: relative;"
+            >
+              <div
+                style="display: flex; align-items: center; justify-content: space-between; gap: 12px;"
+              >
+                <!-- Tarifa (Editable) -->
+                <div
+                  style="display: flex; flex-direction: column; flex: 2.2; min-width: 160px; gap: 8px; position: relative; z-index: 2;"
+                >
+                  <label
+                    style="font-size: 13px; font-weight: 800; color: #3d39af; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;"
+                  >
+                    <i class="fa-solid fa-pencil" style="font-size: 11px;"></i> Tu Tarifa (C$)
+                  </label>
+                  <div style="position: relative;">
+                    <span
+                      style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #3d39af; font-size: 18px; font-weight: 800;"
+                      >C$</span
+                    >
+                    <input
+                      type="number"
+                      min="0"
+                      [(ngModel)]="priceOrder()!.customRate"
+                      (ngModelChange)="calculateByRate(priceOrder()!, $event)"
+                      placeholder="Ej. 600"
+                      style="width: 100%; padding: 16px 14px 16px 50px; border-radius: 12px; border: 2px solid #a5b4fc; font-family: inherit; font-size: 20px; font-weight: 800; color: #3d39af; outline: none; box-sizing: border-box; background: white; box-shadow: 0 4px 6px -1px rgba(61, 57, 175, 0.1);"
+                      onfocus="this.style.borderColor='#3d39af'; this.style.boxShadow='0 0 0 3px rgba(61, 57, 175, 0.2)';"
+                      onblur="if(!this.value) { this.style.borderColor='#a5b4fc'; } this.style.boxShadow='0 4px 6px -1px rgba(61, 57, 175, 0.1)';"
+                    />
+                  </div>
+                </div>
+
+                <span style="color: #94a3b8; font-size: 20px; font-weight: 400; margin-top: 24px;"
+                  >×</span
+                >
+
+                <!-- Peso (Lectura) -->
+                <div style="display: flex; flex-direction: column; flex: 1; gap: 8px;">
+                  <label
+                    style="font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; text-align: center;"
+                    >Peso</label
+                  >
+                  <div
+                    style="background: #f1f5f9; border: 1px dashed #cbd5e1; border-radius: 10px; padding: 14px 12px; text-align: center; font-size: 16px; font-weight: 700; color: #64748b; cursor: not-allowed;"
+                    title="Valor fijo del pedido"
+                  >
+                    {{ getOrderWeight(priceOrder()!) }}
+                  </div>
+                </div>
+
+                <span style="color: #94a3b8; font-size: 20px; font-weight: 400; margin-top: 24px;"
+                  >×</span
+                >
+
+                <!-- Cantidad (Lectura) -->
+                <div style="display: flex; flex-direction: column; flex: 1; gap: 8px;">
+                  <label
+                    style="font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; text-align: center;"
+                    >Cant.</label
+                  >
+                  <div
+                    style="background: #f1f5f9; border: 1px dashed #cbd5e1; border-radius: 10px; padding: 14px 12px; text-align: center; font-size: 16px; font-weight: 700; color: #64748b; cursor: not-allowed;"
+                    title="Valor fijo del pedido"
+                  >
+                    {{ getOrderQuantity(priceOrder()!) }}
+                  </div>
+                </div>
+              </div>
+
+              <hr style="border: none; border-top: 2px dashed #cbd5e1; margin: 0;" />
+
+              <div
+                style="background: white; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;"
+              >
+                <span
+                  style="font-size: 14px; color: #475569; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;"
+                  >Monto Total</span
+                >
+                <span style="font-weight: 800; color: #10b981; font-size: 26px;">
+                  C$
+                  {{
+                    priceOrder()!.selectedAmount
+                      ? (priceOrder()!.selectedAmount | number: '1.2-2' : 'en-US')
+                      : '0.00'
+                  }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div
+            style="padding: 20px 24px; border-top: 1px solid #f1f5f9; display: flex; justify-content: flex-end; gap: 12px; background: #ffffff;"
+          >
+            <button
+              (click)="closePriceModal()"
+              style="background: white; color: #475569; border: 1.5px solid #cbd5e1; padding: 12px 24px; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s;"
+              onmouseover="this.style.background='#f8fafc'"
+              onmouseout="this.style.background='white'"
+            >
+              Cancelar
+            </button>
+            <button
+              (click)="confirmPrice()"
+              [disabled]="!priceOrder()!.selectedAmount"
+              style="background: #10b981; color: white; border: none; padding: 12px 24px; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s;"
+              [style.opacity]="!priceOrder()!.selectedAmount ? '0.5' : '1'"
+              [style.cursor]="!priceOrder()!.selectedAmount ? 'not-allowed' : 'pointer'"
+              onmouseover="if(!this.disabled) { this.style.backgroundColor='#059669'; }"
+              onmouseout="if(!this.disabled) { this.style.backgroundColor='#10b981'; }"
+            >
+              <i class="fa-solid fa-check"></i> Confirmar
             </button>
           </div>
         </div>
@@ -511,6 +667,10 @@ export class OrdersListComponent implements OnInit {
   showModal = signal(false);
   selectedOrder = signal<Order | null>(null);
 
+  // Signals para el modal de asignación de precio
+  showPriceModal = signal(false);
+  priceOrder = signal<Order | null>(null);
+
   private companyId: number | null = null;
   private searchTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -567,7 +727,12 @@ export class OrdersListComponent implements OnInit {
           }
         });
 
-        // Filtrado de búsqueda
+        // Filtrado local por estado (respaldo si el backend no filtra)
+        if (this.statusFilter) {
+          data = data.filter((o) => o.status === this.statusFilter);
+        }
+
+        // Filtrado de búsqueda por texto
         if (this.searchTerm.trim()) {
           const term = this.searchTerm.toLowerCase();
           data = data.filter(
@@ -578,7 +743,8 @@ export class OrdersListComponent implements OnInit {
         }
 
         this.orders.set(data);
-        this.total.set(res.meta?.total ?? data.length);
+        // Si hay filtro activo, mostrar la cantidad real de resultados filtrados
+        this.total.set(this.statusFilter ? data.length : (res.meta?.total ?? data.length));
         this.totalPages.set(res.meta?.lastPage ?? 1);
         this.loading.set(false);
       },
@@ -598,6 +764,25 @@ export class OrdersListComponent implements OnInit {
   closeModal(): void {
     this.showModal.set(false);
     this.selectedOrder.set(null);
+  }
+
+  openPriceModal(order: Order): void {
+    if (this.isPriceLocked(order)) return;
+    this.priceOrder.set(order);
+    this.showPriceModal.set(true);
+  }
+
+  closePriceModal(): void {
+    this.showPriceModal.set(false);
+    this.priceOrder.set(null);
+  }
+
+  confirmPrice(): void {
+    const order = this.priceOrder();
+    if (order && order.selectedAmount) {
+      this.assignPrice(order.idOrder, order.selectedAmount);
+      this.closePriceModal();
+    }
   }
 
   onSearch(): void {
@@ -629,7 +814,7 @@ export class OrdersListComponent implements OnInit {
       en_proceso: 'En proceso',
       completado: 'Completado',
       cancelado: 'Cancelado',
-      denegado: 'Denegado'
+      denegado: 'Denegado',
     };
     return map[status] ?? status;
   }
@@ -645,7 +830,7 @@ export class OrdersListComponent implements OnInit {
       en_proceso: 'badge-resort badge-activa',
       completado: 'badge-resort badge-finalizada',
       cancelado: 'badge-resort badge-cancelada',
-      denegado: 'badge-resort badge-cancelada'
+      denegado: 'badge-resort badge-cancelada',
     };
     return map[status] ?? 'badge-resort badge-pendiente';
   }
@@ -655,6 +840,31 @@ export class OrdersListComponent implements OnInit {
     this.orderService.assignDriver(idOrder, idDriver).subscribe({
       next: (res) => {
         this.ui.showToast('Conductor asignado correctamente', 'success');
+        this.load();
+      },
+      error: (err) => {
+        this.ui.showToast(getHttpErrorMessage(err), 'error');
+      },
+    });
+  }
+
+  startEditDriver(order: Order): void {
+    order.editingDriver = true;
+    order.newDriverId = order.details?.[0]?.idDriver;
+  }
+
+  cancelEditDriver(order: Order): void {
+    order.editingDriver = false;
+    order.newDriverId = undefined;
+  }
+
+  confirmDriverEdit(order: Order): void {
+    if (!order.newDriverId) return;
+    this.orderService.assignDriver(order.idOrder, order.newDriverId).subscribe({
+      next: () => {
+        this.ui.showToast('Conductor actualizado correctamente', 'success');
+        order.editingDriver = false;
+        order.newDriverId = undefined;
         this.load();
       },
       error: (err) => {
@@ -712,5 +922,19 @@ export class OrdersListComponent implements OnInit {
 
     order.selectedAmount = actualRate * quantity * weight;
   }
-}
 
+  getOrderWeight(order: Order): number {
+    const detail = order.details?.[0];
+    if (!detail) return 0;
+    return Math.max(
+      0,
+      Number.parseFloat(String(detail.unitWeight || '0').replace(/[^\d.]/g, '')) || 0,
+    );
+  }
+
+  getOrderQuantity(order: Order): number {
+    const detail = order.details?.[0];
+    if (!detail) return 1;
+    return Math.max(0, detail.quantity || 1);
+  }
+}

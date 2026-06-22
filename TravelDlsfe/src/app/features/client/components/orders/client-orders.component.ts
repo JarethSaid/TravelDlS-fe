@@ -264,17 +264,17 @@ type StatusKey = 'pendiente' | 'entregado' | 'cancelado' | 'en_transito' | 'conf
           </button>
           <button
             class="tab"
-            [class.tab--active]="activeFilter === 'pendiente'"
-            (click)="applyFilter('pendiente')"
+            [class.tab--active]="activeFilter === 'pending'"
+            (click)="applyFilter('pending')"
           >
             Pendientes
           </button>
           <button
             class="tab"
-            [class.tab--active]="activeFilter === 'completada'"
-            (click)="applyFilter('completada')"
+            [class.tab--active]="activeFilter === 'delivered'"
+            (click)="applyFilter('delivered')"
           >
-            Completadas
+            Entregadas
           </button>
         </div>
         <div class="per-page">
@@ -654,10 +654,10 @@ export class ClientOrdersComponent implements OnInit, OnDestroy {
       this.filteredOrders.set(all);
     } else if (this.activeFilter === 'pending') {
       this.filteredOrders.set(
-        all.filter((o) => ['pendiente', 'confirmado', 'en_transito'].includes(o.status)),
+        all.filter((o) => ['pendiente', 'confirmado', 'en_transito', 'esperando_aprobacion', 'aceptado'].includes(o.status)),
       );
-    } else if (this.activeFilter === 'completed') {
-      this.filteredOrders.set(all.filter((o) => ['entregado'].includes(o.status)));
+    } else if (this.activeFilter === 'delivered') {
+      this.filteredOrders.set(all.filter((o) => ['entregado', 'completado', 'completada'].includes(o.status)));
     } else if (this.activeFilter === 'cancelled') {
       this.filteredOrders.set(all.filter((o) => o.status === 'cancelado'));
     } else {
