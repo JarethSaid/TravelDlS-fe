@@ -17,6 +17,7 @@ export interface ClientOrder {
   updatedAt: string;
   company?: { idCompany: number; businessName: string };
   details?: OrderDetail[];
+  payment?: Payment | null;
 }
 
 export interface OrderTracking {
@@ -26,6 +27,38 @@ export interface OrderTracking {
   longitude: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export type PaymentMethod = 'card' | 'transfer';
+export type PaymentStatus = 'pendiente' | 'pagado' | 'fallido' | 'cancelado';
+
+export interface Payment {
+  idPayment: number;
+  idOrder: number;
+  idClient: number;
+  idCompany: number;
+  amount: number;
+  status: PaymentStatus;
+  method: PaymentMethod;
+  billingEmail: string;
+  cardHolderName: string | null;
+  cardBrand: string | null;
+  last4: string | null;
+  transferReference: string | null;
+  referenceCode: string;
+  paidAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SimulatePaymentPayload {
+  method: PaymentMethod;
+  billingEmail: string;
+  cardHolderName?: string;
+  cardNumber?: string;
+  expiry?: string;
+  cvc?: string;
+  transferReference?: string;
 }
 
 export interface OrderDetail {

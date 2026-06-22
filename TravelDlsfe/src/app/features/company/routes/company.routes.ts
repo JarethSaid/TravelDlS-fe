@@ -40,6 +40,13 @@ export const companyRoutes: Routes = [
           ),
       },
       {
+        path: 'payments',
+        loadComponent: () =>
+          import('../components/payments/payments-list.component').then(
+            (m) => m.PaymentsListComponent
+          ),
+      },
+      {
         path: 'profile',
         loadComponent: () =>
           import('../components/profile/company-profile.component').then(

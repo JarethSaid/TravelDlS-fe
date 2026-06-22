@@ -36,5 +36,7 @@ export class OrderService {
   updateOrderStatus(idOrder: number, status: string): Observable<any> {
     return this.http.put<any>(`${this.base}/api/orders/${idOrder}`, { status });
   }
+  getPayments(params?: HttpParams): Observable<any> {
+    return this.http.get<any>(`${this.base}/api/payments`, { params });
+  }
 }
-
