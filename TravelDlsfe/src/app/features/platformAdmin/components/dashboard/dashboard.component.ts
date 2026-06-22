@@ -320,13 +320,13 @@ export class AdminDashboardComponent implements OnInit {
 
       // Donut segments (Clients by type: B2B vs B2C)
       const clientTypes = [
-        { key: 'empresa', label: 'B2B (Empresas)', color: '#3d39af' },
-        { key: 'persona', label: 'B2C (Personas)', color: '#10b981' },
+        { key: 'legal', label: 'B2B (Empresas)', color: '#3d39af' },
+        { key: 'natural', label: 'B2C (Personas)', color: '#10b981' },
       ];
       
-      const clientMap: Record<string, number> = { 'empresa': 0, 'persona': 0 };
+      const clientMap: Record<string, number> = { 'legal': 0, 'natural': 0 };
       clients.forEach((c) => {
-        const type = c.typeClient?.toLowerCase() === 'empresa' ? 'empresa' : 'persona';
+        const type = c.typeClient?.toLowerCase() === 'legal' ? 'legal' : 'natural';
         clientMap[type]++;
       });
       
