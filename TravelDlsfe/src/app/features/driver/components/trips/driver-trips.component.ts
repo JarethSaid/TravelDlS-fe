@@ -65,9 +65,9 @@ import { interval, Subscription, switchMap, startWith } from 'rxjs';
                       </div>
                     </td>
                     <td>
-                      <div class="trip-address" [title]="trip.client?.address || trip.details?.[0]?.deliveryAddress || 'Sin dirección'">
+                      <div class="trip-address" [title]="trip.details?.[0]?.deliveryAddress || trip.client?.address || 'Sin dirección'">
                         <i class="fa-solid fa-location-dot"></i>
-                        <span>{{ trip.client?.address || trip.details?.[0]?.deliveryAddress || 'Sin dirección' }}</span>
+                        <span>{{ trip.details?.[0]?.deliveryAddress || trip.client?.address || 'Sin dirección' }}</span>
                       </div>
                     </td>
                     <td>

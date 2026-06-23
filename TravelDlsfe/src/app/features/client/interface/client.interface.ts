@@ -79,6 +79,8 @@ export interface OrderDetail {
 export interface OrderDetailDraft {
   cargoDescription: string;
   amount: number;
+  weightValue: number | null;
+  weightUnit: string;
   unitWeight: string;
   deliveryAddress: string;
   typePackaging: string;

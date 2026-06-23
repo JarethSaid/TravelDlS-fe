@@ -130,14 +130,25 @@ type StatusKey = 'pendiente' | 'entregado' | 'cancelado' | 'en_transito' | 'conf
                 </div>
 
                 <div class="form-group">
-                  <label for="unitWeight">Peso / Unidad *</label>
+                  <label for="weightValue">Peso *</label>
                   <input
-                    id="unitWeight"
-                    type="text"
-                    [(ngModel)]="draftDetail.unitWeight"
-                    placeholder="Ej: 50 kg, 1 Ton"
-                    maxlength="50"
+                    id="weightValue"
+                    type="number"
+                    [(ngModel)]="draftDetail.weightValue"
+                    placeholder="Ej: 50"
+                    min="0"
+                    step="0.01"
                   />
+                </div>
+
+                <div class="form-group">
+                  <label for="weightUnit">Unidad *</label>
+                  <select id="weightUnit" [(ngModel)]="draftDetail.weightUnit">
+                    <option value="kg">kg</option>
+                    <option value="lbs">lbs</option>
+                    <option value="Ton">Ton</option>
+                    <option value="qq">qq</option>
+                  </select>
                 </div>
 
                 <div class="form-group">
@@ -255,17 +266,17 @@ type StatusKey = 'pendiente' | 'entregado' | 'cancelado' | 'en_transito' | 'conf
           </button>
           <button
             class="tab"
-            [class.tab--active]="activeFilter === 'pendiente'"
-            (click)="applyFilter('pendiente')"
+            [class.tab--active]="activeFilter === 'pending'"
+            (click)="applyFilter('pending')"
           >
             Pendientes
           </button>
           <button
             class="tab"
-            [class.tab--active]="activeFilter === 'completada'"
-            (click)="applyFilter('completada')"
+            [class.tab--active]="activeFilter === 'delivered'"
+            (click)="applyFilter('delivered')"
           >
-            Completadas
+            Entregadas
           </button>
         </div>
         <div class="per-page">
@@ -814,10 +825,10 @@ export class ClientOrdersComponent implements OnInit, OnDestroy {
       this.filteredOrders.set(all);
     } else if (this.activeFilter === 'pending') {
       this.filteredOrders.set(
-        all.filter((o) => ['pendiente', 'confirmado', 'en_transito'].includes(o.status)),
+        all.filter((o) => ['pendiente', 'confirmado', 'en_transito', 'esperando_aprobacion', 'aceptado'].includes(o.status)),
       );
-    } else if (this.activeFilter === 'completed') {
-      this.filteredOrders.set(all.filter((o) => ['entregado'].includes(o.status)));
+    } else if (this.activeFilter === 'delivered') {
+      this.filteredOrders.set(all.filter((o) => ['entregado', 'completado', 'completada'].includes(o.status)));
     } else if (this.activeFilter === 'cancelled') {
       this.filteredOrders.set(all.filter((o) => o.status === 'cancelado'));
     } else {
@@ -1048,6 +1059,8 @@ export class ClientOrdersComponent implements OnInit, OnDestroy {
     return {
       cargoDescription: '',
       amount: 1,
+      weightValue: null,
+      weightUnit: 'kg',
       unitWeight: '',
       deliveryAddress: '',
       typePackaging: 'pallet',
@@ -1058,19 +1071,23 @@ export class ClientOrdersComponent implements OnInit, OnDestroy {
     const d = this.draftDetail;
     return (
       d.cargoDescription.trim().length >= 3 &&
-      d.unitWeight.trim().length > 0 &&
+      d.weightValue !== null && d.weightValue > 0 &&
+      d.weightUnit.trim().length > 0 &&
       d.deliveryAddress.trim().length >= 5
     );
   }
 
   addDetailToCart(): void {
     if (!this.isDetailValid()) return;
+    const combinedWeight = `${this.draftDetail.weightValue} ${this.draftDetail.weightUnit}`;
     this.cartDetails.update((list) => [
       ...list,
       {
         cargoDescription: this.draftDetail.cargoDescription.trim(),
         amount: 1,
-        unitWeight: this.draftDetail.unitWeight.trim(),
+        weightValue: this.draftDetail.weightValue,
+        weightUnit: this.draftDetail.weightUnit,
+        unitWeight: combinedWeight,
         deliveryAddress: this.draftDetail.deliveryAddress.trim(),
         typePackaging: this.draftDetail.typePackaging,
       },

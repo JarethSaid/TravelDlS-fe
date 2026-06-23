@@ -56,6 +56,8 @@ interface StatCard {
           </div>
         </div>
 
+
+
         <!-- Donut chart: Tipos de Clientes -->
         <div class="chart-card">
           <div class="chart-header">
@@ -145,12 +147,8 @@ interface StatCard {
     /* ---- CHARTS ---- */
     .charts-row {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
       gap: 20px;
-    }
-
-    @media (max-width: 768px) {
-      .charts-row { grid-template-columns: 1fr; }
     }
 
     .chart-card {
@@ -159,6 +157,8 @@ interface StatCard {
       padding: 22px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.05);
       border: 1px solid #f1f5f9;
+      display: flex;
+      flex-direction: column;
     }
 
     .chart-header {
@@ -181,6 +181,7 @@ interface StatCard {
       height: 160px;
       padding-bottom: 30px;
       position: relative;
+      flex: 1;
     }
 
     .bar-col {
@@ -219,11 +220,69 @@ interface StatCard {
       color: #1e293b;
     }
 
+    /* Top Drivers */
+    .top-drivers-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      flex: 1;
+      justify-content: center;
+    }
+
+    .top-driver-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .driver-rank {
+      font-size: 14px;
+      font-weight: 800;
+      color: #94a3b8;
+      width: 24px;
+    }
+
+    .driver-info {
+      width: 120px;
+      flex-shrink: 0;
+    }
+
+    .driver-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: #1e293b;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .driver-trips {
+      font-size: 11px;
+      color: #64748b;
+    }
+
+    .driver-bar-wrap {
+      flex: 1;
+      height: 8px;
+      background: #f1f5f9;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .driver-bar {
+      height: 100%;
+      background: #3d39af;
+      border-radius: 4px;
+      transition: width 0.4s ease;
+    }
+
     /* Donut */
     .donut-wrap {
       display: flex;
       align-items: center;
       gap: 24px;
+      flex: 1;
+      justify-content: center;
     }
 
     .donut {
@@ -271,6 +330,7 @@ export class AdminDashboardComponent implements OnInit {
   ]);
 
   readonly driverBars = signal<{ label: string; value: number; pct: number }[]>([]);
+  
   readonly donutSegments = signal<
     { label: string; color: string; dash: number; gap: number; offset: number }[]
   >([]);
@@ -320,13 +380,13 @@ export class AdminDashboardComponent implements OnInit {
 
       // Donut segments (Clients by type: B2B vs B2C)
       const clientTypes = [
-        { key: 'empresa', label: 'B2B (Empresas)', color: '#3d39af' },
-        { key: 'persona', label: 'B2C (Personas)', color: '#10b981' },
+        { key: 'legal', label: 'B2B (Empresas)', color: '#3d39af' },
+        { key: 'natural', label: 'B2C (Personas)', color: '#10b981' },
       ];
       
-      const clientMap: Record<string, number> = { 'empresa': 0, 'persona': 0 };
+      const clientMap: Record<string, number> = { 'legal': 0, 'natural': 0 };
       clients.forEach((c) => {
-        const type = c.typeClient?.toLowerCase() === 'empresa' ? 'empresa' : 'persona';
+        const type = c.typeClient?.toLowerCase() === 'legal' ? 'legal' : 'natural';
         clientMap[type]++;
       });
       
