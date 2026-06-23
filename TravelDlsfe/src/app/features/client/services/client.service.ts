@@ -2,7 +2,15 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { API_BASE_URL } from '../../../core/api-base-url';
-import { ClientProfile, ClientOrder, OrderDetail, OrderPaginator, CompanyPaginator } from '../interface/client.interface';
+import {
+  ClientProfile,
+  ClientOrder,
+  OrderDetail,
+  OrderPaginator,
+  CompanyPaginator,
+  Payment,
+  SimulatePaymentPayload,
+} from '../interface/client.interface';
 
 @Injectable({
   providedIn: 'root'
@@ -87,5 +95,12 @@ export class ClientService {
 
   respondPrice(idOrder: number, body: { accepted: boolean }): Observable<ClientOrder> {
     return this.http.patch<ClientOrder>(`${this.base}/api/orders/${idOrder}/respond-price`, body);
+  }
+  simulateOrderPayment(idOrder: number, body: SimulatePaymentPayload): Observable<ClientOrder> {
+    return this.http.post<ClientOrder>(`${this.base}/api/orders/${idOrder}/payments/simulate`, body);
+  }
+
+  getOrderPayment(idOrder: number): Observable<Payment> {
+    return this.http.get<Payment>(`${this.base}/api/orders/${idOrder}/payment`);
   }
 }

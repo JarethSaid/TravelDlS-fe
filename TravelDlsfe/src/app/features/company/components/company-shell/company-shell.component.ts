@@ -425,6 +425,7 @@ export class CompanyShellComponent {
     { label: 'Mis Conductores', icon: 'fa-solid fa-user-group', route: '/company/drivers' },
     { label: 'Mis Camiones', icon: 'fa-solid fa-truck', route: '/company/trucks' },
     { label: 'Mis Pedidos', icon: 'fa-solid fa-box', route: '/company/orders' },
+    { label: 'Pagos', icon: 'fa-solid fa-money-check-dollar', route: '/company/payments' },
     { label: 'Mi Empresa', icon: 'fa-regular fa-building', route: '/company/profile' },
   ];
 

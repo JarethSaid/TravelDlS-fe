@@ -21,6 +21,8 @@ import {
   Company,
   OrderDetailDraft,
   PACKAGING_TYPES,
+  PaymentMethod,
+  SimulatePaymentPayload,
 } from '../../interface/client.interface';
 import { forkJoin, Subscription, interval } from 'rxjs';
 import * as L from 'leaflet';
@@ -487,7 +489,7 @@ type StatusKey = 'pendiente' | 'entregado' | 'cancelado' | 'en_transito' | 'conf
                     </button>
                     <button
                       class="btn-accept"
-                      (click)="respondPrice(true)"
+                      (click)="openPaymentModal()"
                       [disabled]="isRespondingPrice()"
                     >
                       <i class="fa-solid fa-check"></i> Aceptar
@@ -508,6 +510,172 @@ type StatusKey = 'pendiente' | 'entregado' | 'cancelado' | 'en_transito' | 'conf
               </button>
             }
             <button class="btn-confirm" (click)="closeDetailModal()">Entendido</button>
+          </div>
+        </div>
+      }
+
+      @if (showPaymentModal() && selectedOrderDetail()) {
+        <div class="custom-modal-overlay" (click)="closePaymentModal()"></div>
+        <div class="custom-modal custom-modal--payment">
+          <div class="payment-modal-header">
+            <div>
+              <p class="payment-kicker">Pasarela simulada</p>
+              <h2>Pagar Pedido #{{ selectedOrderDetail()!.idOrder }}</h2>
+              <span>Total a pagar: C$ {{ getOrderTotal(selectedOrderDetail()!) | number: '1.2-2' }}</span>
+            </div>
+            <button class="btn-close-modal" type="button" (click)="closePaymentModal()">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <div class="payment-modal-body">
+            <section class="payment-section">
+              <h3>Informacion de contacto</h3>
+              <div class="payment-grid payment-grid--two">
+                <label class="payment-field">
+                  <span>Nombre del titular</span>
+                  <div class="payment-input-wrap">
+                    <i class="fa-regular fa-user"></i>
+                    <input
+                      type="text"
+                      [(ngModel)]="paymentForm.cardHolderName"
+                      placeholder="Nombre y apellido"
+                      maxlength="255"
+                    />
+                  </div>
+                </label>
+                <label class="payment-field">
+                  <span>Correo de facturacion</span>
+                  <div class="payment-input-wrap">
+                    <i class="fa-regular fa-envelope"></i>
+                    <input
+                      type="email"
+                      [(ngModel)]="paymentForm.billingEmail"
+                      placeholder="correo@ejemplo.com"
+                      maxlength="255"
+                    />
+                  </div>
+                </label>
+              </div>
+            </section>
+
+            <section class="payment-section">
+              <h3>Metodo de pago</h3>
+              <div class="payment-methods">
+                <button
+                  type="button"
+                  class="payment-method"
+                  [class.payment-method--active]="paymentForm.method === 'card'"
+                  (click)="selectPaymentMethod('card')"
+                >
+                  <i class="fa-regular fa-credit-card"></i>
+                  <span>Tarjeta</span>
+                  <small>Visa / Mastercard</small>
+                </button>
+                <button
+                  type="button"
+                  class="payment-method"
+                  [class.payment-method--active]="paymentForm.method === 'transfer'"
+                  (click)="selectPaymentMethod('transfer')"
+                >
+                  <i class="fa-solid fa-building-columns"></i>
+                  <span>Transferencia</span>
+                  <small>Referencia simulada</small>
+                </button>
+              </div>
+            </section>
+
+            @if (paymentForm.method === 'card') {
+              <section class="payment-section payment-card-form">
+                <label class="payment-field payment-field--full">
+                  <span>Numero de tarjeta</span>
+                  <div class="payment-input-wrap">
+                    <i class="fa-regular fa-credit-card"></i>
+                    <input
+                      type="text"
+                      [(ngModel)]="paymentForm.cardNumber"
+                      (ngModelChange)="formatCardNumber($event)"
+                      placeholder="1234 1234 1234 1234"
+                      maxlength="23"
+                    />
+                  </div>
+                </label>
+                <div class="payment-grid payment-grid--two">
+                  <label class="payment-field">
+                    <span>Vencimiento</span>
+                    <div class="payment-input-wrap">
+                      <i class="fa-regular fa-calendar"></i>
+                      <input
+                        type="text"
+                        [(ngModel)]="paymentForm.expiry"
+                        (ngModelChange)="formatExpiry($event)"
+                        placeholder="MM/AA"
+                        maxlength="5"
+                      />
+                    </div>
+                  </label>
+                  <label class="payment-field">
+                    <span>CVC</span>
+                    <div class="payment-input-wrap">
+                      <i class="fa-solid fa-key"></i>
+                      <input
+                        type="password"
+                        [(ngModel)]="paymentForm.cvc"
+                        placeholder="CVC"
+                        maxlength="4"
+                      />
+                    </div>
+                  </label>
+                </div>
+              </section>
+            } @else {
+              <section class="payment-section transfer-box">
+                <div>
+                  <strong>Transferencia simulada</strong>
+                  <p>Banco TravelDLS - Cuenta 000-123456-789</p>
+                </div>
+                <label class="payment-field payment-field--full">
+                  <span>Referencia</span>
+                  <div class="payment-input-wrap">
+                    <i class="fa-solid fa-hashtag"></i>
+                    <input
+                      type="text"
+                      [(ngModel)]="paymentForm.transferReference"
+                      placeholder="REF-123456"
+                      maxlength="100"
+                    />
+                  </div>
+                </label>
+              </section>
+            }
+
+            <section class="payment-summary">
+              <div>
+                <span>Pedido</span>
+                <strong>#{{ selectedOrderDetail()!.idOrder }}</strong>
+              </div>
+              <div>
+                <span>Empresa</span>
+                <strong>{{ selectedOrderDetail()!.company?.businessName ?? 'Empresa no asignada' }}</strong>
+              </div>
+              <div class="payment-summary-total">
+                <span>Total</span>
+                <strong>C$ {{ getOrderTotal(selectedOrderDetail()!) | number: '1.2-2' }}</strong>
+              </div>
+            </section>
+          </div>
+
+          <div class="payment-modal-footer">
+            <button type="button" class="btn-cancel" (click)="closePaymentModal()" [disabled]="isProcessingPayment()">
+              Cancelar
+            </button>
+            <button type="button" class="btn-pay-now" (click)="submitPayment()" [disabled]="isProcessingPayment() || !isPaymentFormValid()">
+              @if (isProcessingPayment()) {
+                <i class="fa-solid fa-spinner fa-spin"></i> Procesando...
+              } @else {
+                <i class="fa-solid fa-lock"></i> Pagar ahora
+              }
+            </button>
           </div>
         </div>
       }
@@ -585,6 +753,9 @@ export class ClientOrdersComponent implements OnInit, OnDestroy {
   readonly selectedCompanyForOrder = signal<Company | null>(null);
   readonly creatingOrder = signal(false);
   readonly isRespondingPrice = signal(false);
+  readonly showPaymentModal = signal(false);
+  readonly isProcessingPayment = signal(false);
+  paymentForm = this.emptyPaymentForm();
   searchTerm = '';
   private searchTimeout: any;
 
@@ -741,6 +912,106 @@ export class ClientOrdersComponent implements OnInit, OnDestroy {
         this.ui.mostrarError(err);
       },
     });
+  }
+
+  openPaymentModal(): void {
+    const order = this.selectedOrderDetail();
+    if (!order || this.getOrderTotal(order) <= 0) return;
+    const user = this.auth.user();
+    this.paymentForm = this.emptyPaymentForm(user?.email ?? '', user?.name ?? '');
+    this.showPaymentModal.set(true);
+  }
+
+  closePaymentModal(): void {
+    if (this.isProcessingPayment()) return;
+    this.showPaymentModal.set(false);
+    this.paymentForm = this.emptyPaymentForm();
+  }
+
+  selectPaymentMethod(method: PaymentMethod): void {
+    this.paymentForm.method = method;
+  }
+
+  formatCardNumber(value: string): void {
+    const digits = value.replace(/\D/g, '').slice(0, 19);
+    this.paymentForm.cardNumber = digits.replace(/(.{4})/g, '$1 ').trim();
+  }
+
+  formatExpiry(value: string): void {
+    const digits = value.replace(/\D/g, '').slice(0, 4);
+    this.paymentForm.expiry = digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits;
+  }
+
+  isPaymentFormValid(): boolean {
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.paymentForm.billingEmail.trim());
+    if (!emailOk) return false;
+
+    if (this.paymentForm.method === 'transfer') {
+      return this.paymentForm.transferReference.trim().length >= 4;
+    }
+
+    const cardDigits = this.paymentForm.cardNumber.replace(/\D/g, '');
+    return (
+      this.paymentForm.cardHolderName.trim().length >= 3 &&
+      cardDigits.length >= 12 &&
+      /^\d{2}\/\d{2}$/.test(this.paymentForm.expiry.trim()) &&
+      /^\d{3,4}$/.test(this.paymentForm.cvc.trim())
+    );
+  }
+
+  submitPayment(): void {
+    const order = this.selectedOrderDetail();
+    if (!order || !this.isPaymentFormValid()) return;
+
+    const payload: SimulatePaymentPayload = {
+      method: this.paymentForm.method,
+      billingEmail: this.paymentForm.billingEmail.trim(),
+    };
+
+    if (this.paymentForm.method === 'card') {
+      payload.cardHolderName = this.paymentForm.cardHolderName.trim();
+      payload.cardNumber = this.paymentForm.cardNumber.trim();
+      payload.expiry = this.paymentForm.expiry.trim();
+      payload.cvc = this.paymentForm.cvc.trim();
+    } else {
+      payload.transferReference = this.paymentForm.transferReference.trim();
+    }
+
+    this.isProcessingPayment.set(true);
+    this.clientService.simulateOrderPayment(order.idOrder, payload).subscribe({
+      next: (updatedOrder) => {
+        this.isProcessingPayment.set(false);
+        this.showPaymentModal.set(false);
+        this.ui.showToast('Pago registrado correctamente', 'success');
+        this.selectedOrderDetail.set(updatedOrder);
+        this.closeDetailModal();
+        this.loadOrders();
+      },
+      error: (err) => {
+        this.isProcessingPayment.set(false);
+        this.ui.mostrarError(err);
+      },
+    });
+  }
+
+  private emptyPaymentForm(billingEmail = '', cardHolderName = ''): {
+    method: PaymentMethod;
+    billingEmail: string;
+    cardHolderName: string;
+    cardNumber: string;
+    expiry: string;
+    cvc: string;
+    transferReference: string;
+  } {
+    return {
+      method: 'card',
+      billingEmail,
+      cardHolderName,
+      cardNumber: '',
+      expiry: '',
+      cvc: '',
+      transferReference: '',
+    };
   }
 
   getOrderTotal(order: ClientOrder): number {
