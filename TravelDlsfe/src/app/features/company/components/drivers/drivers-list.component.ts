@@ -192,7 +192,7 @@ type PendingNamesByCompany = Record<string, Record<string, string>>;
           </table>
         </div>
 
-        <div class="paginacion-estandar" style="padding: 16px 0; margin-top: 10px;">
+        <div class="paginacion-estandar company-list-pagination">
           <span class="pag-rango">{{ rangeLabel() }}</span>
           <div class="pag-controles">
             <button

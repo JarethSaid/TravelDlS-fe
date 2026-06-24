@@ -138,7 +138,7 @@ interface CompanyPayment {
           </table>
         </div>
 
-        <div class="paginacion-estandar payments-pagination">
+        <div class="paginacion-estandar company-list-pagination payments-pagination">
           <span class="pag-rango">{{ rangeLabel() }}</span>
           <div class="pag-controles">
             <button class="btn-pag" [disabled]="currentPage() <= 1 || loading()" (click)="goPage(currentPage() - 1)">
@@ -223,11 +223,6 @@ interface CompanyPayment {
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       color: #475569;
       font-size: 12px;
-    }
-
-    .payments-pagination {
-      padding: 16px 0 0;
-      margin-top: 10px;
     }
 
     @media (max-width: 760px) {

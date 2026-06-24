@@ -106,10 +106,9 @@ interface Order {
 
                     <td>
                       <button
+                        class="company-inline-action company-inline-action--details"
+                        type="button"
                         (click)="viewDetails(o)"
-                        style="border: none; background: #e0e7ff; color: #3d39af; padding: 8px 14px; border-radius: 10px; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: all 0.2s;"
-                        onmouseover="this.style.backgroundColor='#c7d2fe'"
-                        onmouseout="this.style.backgroundColor='#e0e7ff'"
                       >
                         <i class="fa-regular fa-eye"></i>
                         <span>Ver detalles</span>
@@ -125,8 +124,8 @@ interface Order {
                     <td>
                       @if (o.details && o.details[0] && o.details[0].idDriver && !o.editingDriver) {
                         <!-- Conductor ya asignado: mostrar nombre + botón editar -->
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                          <span style="font-weight: 500; color: #334155;">{{
+                        <div class="order-driver-assigned">
+                          <span class="order-driver-name">{{
                             cleanDriverName(
                               o.details[0]?.driver?.user?.name ||
                                 o.details[0]?.driver?.name ||
@@ -134,27 +133,23 @@ interface Order {
                             )
                           }}</span>
                           <button
+                            class="order-driver-edit"
+                            type="button"
                             (click)="startEditDriver(o)"
                             title="Cambiar conductor"
-                            style="background: #f1f5f9; border: 1.5px solid #e2e8f0; color: #3d39af; width: 30px; height: 30px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; transition: all 0.2s;"
-                            onmouseover="this.style.background='#e0e7ff'; this.style.borderColor='#a5b4fc';"
-                            onmouseout="this.style.background='#f1f5f9'; this.style.borderColor='#e2e8f0';"
                           >
                             <i class="fa-solid fa-pen-to-square"></i>
                           </button>
                         </div>
                       } @else if (o.details && o.details[0] && (o.editingDriver || !o.details[0].idDriver)) {
                         <!-- Selector para asignar / reasignar conductor -->
-                        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                          <div style="position: relative; display: flex; align-items: center; min-width: 200px;">
-                            <i
-                              class="fa-solid fa-user-tie"
-                              style="position: absolute; left: 14px; color: #64748b; font-size: 14px; pointer-events: none;"
-                            ></i>
+                        <div class="order-driver-picker">
+                          <div class="order-driver-select-wrap">
+                            <i class="fa-solid fa-user-tie order-driver-select-icon"></i>
                             <select
+                              class="order-driver-select"
                               [(ngModel)]="o.newDriverId"
                               autocomplete="off"
-                              style="width: 100%; border-radius: 12px; border: 1.5px solid #a5b4fc; padding: 10px 14px 10px 38px; font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; box-sizing: border-box; background-color: #f8fafc; color: #1e293b; appearance: none; -webkit-appearance: none; background-image: url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 20 20%22%3E%3Cpath stroke=%22%236b7280%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-width=%221.5%22 d=%22M6 8l4 4 4-4%22/%3E%3C/svg%3E'); background-position: right 12px center; background-repeat: no-repeat; background-size: 18px; transition: all 0.2s;"
                             >
                               <option [ngValue]="undefined" disabled selected>
                                 {{ o.editingDriver ? 'Seleccione nuevo conductor' : 'Seleccione Conductor' }}
@@ -167,27 +162,25 @@ interface Order {
                             </select>
                           </div>
                           <button
+                            class="order-driver-action order-driver-action--primary"
+                            type="button"
                             [disabled]="!o.newDriverId"
                             (click)="confirmDriverEdit(o)"
-                            style="padding: 10px 16px; border-radius: 12px; font-weight: 600; font-size: 13px; background: #3d39af; color: white; border: none; display: flex; align-items: center; gap: 6px; cursor: pointer; flex-shrink: 0;"
-                            [style.opacity]="!o.newDriverId ? '0.5' : '1'"
-                            [style.cursor]="!o.newDriverId ? 'not-allowed' : 'pointer'"
                           >
                             <i class="fa-solid fa-check"></i> {{ o.editingDriver ? 'Cambiar' : 'Asignar' }}
                           </button>
                           @if (o.editingDriver) {
                             <button
+                              class="order-driver-action order-driver-action--secondary"
+                              type="button"
                               (click)="cancelEditDriver(o)"
-                              style="padding: 10px 14px; border-radius: 12px; font-weight: 600; font-size: 13px; background: white; color: #64748b; border: 1.5px solid #cbd5e1; display: flex; align-items: center; gap: 6px; cursor: pointer; flex-shrink: 0;"
-                              onmouseover="this.style.background='#f8fafc';"
-                              onmouseout="this.style.background='white';"
                             >
                               <i class="fa-solid fa-xmark"></i> Cancelar
                             </button>
                           }
                         </div>
                       } @else {
-                        <span style="color:#6c757d; font-style:italic;">Sin detalles</span>
+                        <span class="order-muted-text">Sin detalles</span>
                       }
                     </td>
 
@@ -223,11 +216,10 @@ interface Order {
                         }
 
                         <button
+                          class="company-inline-action company-inline-action--price"
+                          type="button"
                           (click)="openPriceModal(o)"
                           [disabled]="priceLocked"
-                          style="background: #10b981; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; transition: all 0.2s;"
-                          [style.opacity]="priceLocked ? '0.5' : '1'"
-                          [style.cursor]="priceLocked ? 'not-allowed' : 'pointer'"
                         >
                           <i class="fa-solid fa-calculator"></i>
                           {{
@@ -248,7 +240,7 @@ interface Order {
           </table>
         </div>
 
-        <div class="paginacion-estandar" style="padding: 16px 0; margin-top: 10px;">
+        <div class="paginacion-estandar company-list-pagination">
           <span class="pag-rango">{{ rangeLabel() }}</span>
           <div class="pag-controles">
             <button
@@ -609,6 +601,175 @@ interface Order {
     }
   `,
   styles: `
+    .company-inline-action {
+      min-height: 36px;
+      border: none;
+      border-radius: 10px;
+      padding: 8px 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-family: inherit;
+      font-size: 13px;
+      line-height: 1;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background-color 0.2s, border-color 0.2s, color 0.2s, opacity 0.2s;
+      white-space: nowrap;
+    }
+
+    .company-inline-action--details {
+      background: #e0e7ff;
+      color: #3d39af;
+    }
+
+    .company-inline-action--details:hover {
+      background: #c7d2fe;
+    }
+
+    .company-inline-action--price {
+      background: #10b981;
+      color: white;
+      border-radius: 8px;
+      padding-inline: 12px;
+    }
+
+    .company-inline-action:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .order-driver-assigned,
+    .order-driver-picker {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .order-driver-name {
+      color: #334155;
+      font-weight: 600;
+      line-height: 1.35;
+    }
+
+    .order-driver-edit {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1.5px solid #e2e8f0;
+      background: #f8fafc;
+      color: #3d39af;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background-color 0.2s, border-color 0.2s;
+      flex: 0 0 auto;
+    }
+
+    .order-driver-edit:hover {
+      background: #e0e7ff;
+      border-color: #a5b4fc;
+    }
+
+    .order-driver-select-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+      min-width: 220px;
+      max-width: 260px;
+      flex: 1 1 220px;
+    }
+
+    .order-driver-select-icon {
+      position: absolute;
+      left: 14px;
+      color: #64748b;
+      font-size: 14px;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .order-driver-select {
+      width: 100%;
+      min-height: 38px;
+      border-radius: 12px;
+      border: 1.5px solid #a5b4fc;
+      padding: 9px 38px 9px 38px;
+      font-family: inherit;
+      font-size: 13px;
+      line-height: 1.2;
+      font-weight: 600;
+      cursor: pointer;
+      box-sizing: border-box;
+      background-color: #f8fafc;
+      color: #1e293b;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 20 20%22%3E%3Cpath stroke=%22%236b7280%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-width=%221.5%22 d=%22M6 8l4 4 4-4%22/%3E%3C/svg%3E');
+      background-position: right 12px center;
+      background-repeat: no-repeat;
+      background-size: 18px;
+      transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .order-driver-select:focus {
+      outline: none;
+      border-color: #3d39af;
+      background-color: white;
+      box-shadow: 0 0 0 3px rgba(61, 57, 175, 0.08);
+    }
+
+    .order-driver-action {
+      min-height: 38px;
+      border-radius: 12px;
+      padding: 9px 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-family: inherit;
+      font-size: 13px;
+      line-height: 1;
+      font-weight: 700;
+      cursor: pointer;
+      flex: 0 0 auto;
+      transition: background-color 0.2s, border-color 0.2s, opacity 0.2s;
+      white-space: nowrap;
+    }
+
+    .order-driver-action--primary {
+      background: #3d39af;
+      color: white;
+      border: 1.5px solid #3d39af;
+    }
+
+    .order-driver-action--secondary {
+      background: white;
+      color: #64748b;
+      border: 1.5px solid #cbd5e1;
+    }
+
+    .order-driver-action--secondary:hover {
+      background: #f8fafc;
+    }
+
+    .order-driver-action:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .order-muted-text {
+      color: #64748b;
+      font-size: 13px;
+      font-style: italic;
+      line-height: 1.35;
+    }
     .company-order-row--updated {
       animation: company-order-refresh 4.5s ease-out;
     }

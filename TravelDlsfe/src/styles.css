@@ -366,27 +366,36 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 20px;
+  gap: 12px;
+  padding: 14px 20px;
   background: white;
   border-radius: 16px;
   border: 1px solid #e2e8f0;
+  box-sizing: border-box;
+  flex-wrap: wrap;
 }
 
 .pag-rango {
-  font-size: 14px;
+  font-size: 13px;
+  line-height: 1.35;
   color: #64748b;
-  font-weight: 500;
+  font-weight: 600;
+  min-width: 0;
 }
 
 .pag-controles {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
 }
 
 .pag-info {
   margin: 0 10px;
-  font-size: 14px;
+  font-size: 13px;
+  line-height: 1.35;
   color: #334155;
 }
 
@@ -395,7 +404,9 @@ body {
   display: flex;
   align-items: center;
   gap: 4px;
-  margin: 0 5px;
+  margin: 0 4px;
+  min-width: 0;
+  flex-wrap: wrap;
 }
 
 .btn-pag-num {
@@ -405,13 +416,17 @@ body {
   border: 1px solid transparent;
   background: transparent;
   color: #64748b;
-  font-weight: 600;
-  font-size: 14px;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1;
   cursor: pointer;
   transition: 0.2s;
-  display: grid;
-  place-items: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 0 10px;
+  box-sizing: border-box;
+  font-family: inherit;
 }
 
 .btn-pag-num:hover:not(:disabled) {
@@ -433,7 +448,9 @@ body {
 
 .pag-ellipsis {
   color: #94a3b8;
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1;
   padding: 0 4px;
 }
 
@@ -443,13 +460,18 @@ body {
   color: #64748b;
   width: 36px;
   height: 36px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: 10px;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1;
   transition: 0.2s;
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  font-family: inherit;
 }
 
 .btn-pag:hover:not(:disabled) {
@@ -462,6 +484,36 @@ body {
   opacity: 0.5;
   cursor: not-allowed;
   background: #f8fafc;
+}
+
+.company-list-pagination {
+  margin: 0;
+  padding: 16px 20px;
+  min-height: 68px;
+  border-radius: 0 0 16px 16px;
+  border: 0;
+  border-top: 1px solid #e2e8f0;
+  box-shadow: none;
+}
+
+.company-list-pagination .pag-rango {
+  padding-left: 0;
+}
+
+.company-list-pagination .pag-controles {
+  margin-left: auto;
+}
+
+@media (max-width: 640px) {
+  .paginacion-estandar {
+    align-items: flex-start;
+    padding: 12px;
+  }
+
+  .pag-controles {
+    width: 100%;
+    justify-content: flex-start;
+  }
 }
 
 /* --- BARRA DE BÚSQUEDA LISTADOS --- */
