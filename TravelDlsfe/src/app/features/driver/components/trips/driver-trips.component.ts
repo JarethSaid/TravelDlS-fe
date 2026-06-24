@@ -4,6 +4,7 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { OrderService } from '../../../company/services/order.service';
 import { HttpParams } from '@angular/common/http';
 import { interval, Subscription, switchMap, startWith } from 'rxjs';
+import { resolveOrderDeliveryAddress } from '../../../../shared/utils/order-address.util';
 
 @Component({
   selector: 'app-driver-trips',
@@ -65,9 +66,9 @@ import { interval, Subscription, switchMap, startWith } from 'rxjs';
                       </div>
                     </td>
                     <td>
-                      <div class="trip-address" [title]="trip.details?.[0]?.deliveryAddress || trip.client?.address || 'Sin dirección'">
+                      <div class="trip-address" [title]="deliveryAddress(trip)">
                         <i class="fa-solid fa-location-dot"></i>
-                        <span>{{ trip.details?.[0]?.deliveryAddress || trip.client?.address || 'Sin dirección' }}</span>
+                        <span>{{ deliveryAddress(trip) }}</span>
                       </div>
                     </td>
                     <td>
@@ -341,6 +342,7 @@ import { interval, Subscription, switchMap, startWith } from 'rxjs';
 export class DriverTripsComponent implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly orderService = inject(OrderService);
+  readonly deliveryAddress = resolveOrderDeliveryAddress;
 
   activeFilter = signal('all');
   trips = signal<any[]>([]);

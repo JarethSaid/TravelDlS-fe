@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
 import { OrderService } from '../../../company/services/order.service';
 import { HttpParams } from '@angular/common/http';
+import { resolveOrderDeliveryAddress } from '../../../../shared/utils/order-address.util';
 
 interface StatCard {
   label: string;
@@ -66,7 +67,7 @@ interface StatCard {
                 </div>
                 <div class="trip-dest">
                   <i class="fa-solid fa-location-dot"></i>
-                  <span>{{ trip.client?.address || trip.details?.[0]?.deliveryAddress || 'Sin dirección' }}</span>
+                  <span>{{ deliveryAddress(trip) }}</span>
                 </div>
                 <div class="trip-status">
                   <span class="status-chip status-{{ trip.status }}">
@@ -305,6 +306,7 @@ export class DriverDashboardComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly datePipe = inject(DatePipe);
   private readonly orderService = inject(OrderService);
+  readonly deliveryAddress = resolveOrderDeliveryAddress;
 
   readonly user = this.auth.user;
   readonly firstName = signal<string>('Usuario');
