@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpParams } from '@angular/common/http';
@@ -7,6 +7,7 @@ import { CompanyDriverService, Driver } from '../../services/driver.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { InteractionService } from '../../../../shared/service/interaction.service';
 import { getHttpErrorMessage } from '../../../../core/http/http-error.util';
+import { interval, Subscription } from 'rxjs';
 
 interface Order {
   idOrder: number;
@@ -100,7 +101,7 @@ interface Order {
                 </tr>
               } @else {
                 @for (o of orders(); track o.idOrder) {
-                  <tr>
+                  <tr [class.company-order-row--updated]="updatedOrderIds().has(o.idOrder)">
                     <td class="txt-negrita">#{{ o.idOrder }}</td>
 
                     <td>
@@ -607,9 +608,28 @@ interface Order {
       </div>
     }
   `,
-  styles: ``,
+  styles: `
+    .company-order-row--updated {
+      animation: company-order-refresh 4.5s ease-out;
+    }
+
+    @keyframes company-order-refresh {
+      0% {
+        background: #ecfdf5;
+        box-shadow: inset 4px 0 0 #10b981;
+      }
+      35% {
+        background: #f0fdfa;
+        box-shadow: inset 4px 0 0 #14b8a6;
+      }
+      100% {
+        background: transparent;
+        box-shadow: inset 4px 0 0 transparent;
+      }
+    }
+  `,
 })
-export class OrdersListComponent implements OnInit {
+export class OrdersListComponent implements OnInit, OnDestroy {
   private readonly orderService = inject(OrderService);
   private readonly driverService = inject(CompanyDriverService);
   private readonly auth = inject(AuthService);
@@ -621,6 +641,7 @@ export class OrdersListComponent implements OnInit {
   total = signal(0);
   currentPage = signal(1);
   totalPages = signal(1);
+  updatedOrderIds = signal<Set<number>>(new Set());
   searchTerm = '';
   statusFilter = '';
   perPage: number = 10;
@@ -673,13 +694,22 @@ export class OrdersListComponent implements OnInit {
 
   private companyId: number | null = null;
   private searchTimeout: ReturnType<typeof setTimeout> | null = null;
+  private ordersPollSub?: Subscription;
+  private readonly ordersRefreshMs = 10000;
+  private readonly updatedRowTimers = new Map<number, ReturnType<typeof setTimeout>>();
 
   ngOnInit(): void {
     this.companyId = this.auth.user()?.idCompany ?? null;
     this.load();
+    this.startOrdersPolling();
     if (this.companyId) {
       this.loadDrivers();
     }
+  }
+
+  ngOnDestroy(): void {
+    this.stopOrdersPolling();
+    if (this.searchTimeout) clearTimeout(this.searchTimeout);
   }
 
   loadDrivers(): void {
@@ -691,8 +721,8 @@ export class OrdersListComponent implements OnInit {
     });
   }
 
-  load(): void {
-    this.loading.set(true);
+  load(options: { silent?: boolean } = {}): void {
+    if (!options.silent) this.loading.set(true);
     let p = new HttpParams().set('page', this.currentPage()).set('perPage', this.perPage);
     if (this.companyId) p = p.set('idCompany', this.companyId);
     if (this.statusFilter) p = p.set('status', this.statusFilter);
@@ -742,17 +772,116 @@ export class OrdersListComponent implements OnInit {
           );
         }
 
-        this.orders.set(data);
-        // Si hay filtro activo, mostrar la cantidad real de resultados filtrados
-        this.total.set(this.statusFilter ? data.length : (res.meta?.total ?? data.length));
-        this.totalPages.set(res.meta?.lastPage ?? 1);
-        this.loading.set(false);
+        this.applyOrdersResponse(data, res, !!options.silent);
+        if (!options.silent) this.loading.set(false);
       },
       error: (err) => {
-        this.ui.showToast(getHttpErrorMessage(err), 'error');
-        this.loading.set(false);
+        if (!options.silent) {
+          this.ui.showToast(getHttpErrorMessage(err), 'error');
+          this.loading.set(false);
+        }
       },
     });
+  }
+
+  private startOrdersPolling(): void {
+    this.ordersPollSub?.unsubscribe();
+    this.ordersPollSub = interval(this.ordersRefreshMs).subscribe(() => {
+      this.load({ silent: true });
+    });
+  }
+
+  private stopOrdersPolling(): void {
+    this.ordersPollSub?.unsubscribe();
+    this.ordersPollSub = undefined;
+    this.updatedRowTimers.forEach((timer) => clearTimeout(timer));
+    this.updatedRowTimers.clear();
+    this.updatedOrderIds.set(new Set());
+  }
+
+  private applyOrdersResponse(data: Order[], res: any, highlightChanges: boolean): void {
+    const merged = data.map((order) => this.mergeOrderSnapshot(order));
+    const changedIds = highlightChanges ? this.getChangedOrderIds(this.orders(), merged) : [];
+
+    this.orders.set(merged);
+    this.total.set(this.statusFilter ? merged.length : (res.meta?.total ?? merged.length));
+    this.totalPages.set(res.meta?.lastPage ?? 1);
+    this.syncOpenOrderState(merged, changedIds);
+    changedIds.forEach((idOrder) => this.markOrderAsUpdated(idOrder));
+  }
+
+  private mergeOrderSnapshot(fresh: Order): Order {
+    const current = this.orders().find((order) => order.idOrder === fresh.idOrder);
+    if (!current) return fresh;
+
+    return {
+      ...fresh,
+      editingDriver: current.editingDriver,
+      newDriverId: current.editingDriver ? current.newDriverId : fresh.newDriverId,
+      customRate: current.customRate ?? fresh.customRate,
+      selectedAmount: fresh.selectedAmount ?? current.selectedAmount,
+    };
+  }
+
+  private getChangedOrderIds(previous: Order[], next: Order[]): number[] {
+    const previousById = new Map(previous.map((order) => [order.idOrder, this.orderSignature(order)]));
+    return next
+      .filter((order) => !previousById.has(order.idOrder) || previousById.get(order.idOrder) !== this.orderSignature(order))
+      .map((order) => order.idOrder);
+  }
+
+  private orderSignature(order: Order): string {
+    const detail = order.details?.[0];
+    const amount = order.selectedAmount ?? detail?.amount ?? detail?.price ?? '';
+    const driver = detail?.idDriver ?? '';
+    return [order.status, order.createdAt, amount, driver].join('|');
+  }
+
+  private syncOpenOrderState(orders: Order[], changedIds: number[]): void {
+    if (changedIds.length === 0) return;
+    const changedSet = new Set(changedIds);
+
+    const selected = this.selectedOrder();
+    if (selected && changedSet.has(selected.idOrder)) {
+      const fresh = orders.find((order) => order.idOrder === selected.idOrder);
+      if (fresh) this.selectedOrder.set(fresh);
+    }
+
+    const priceOrder = this.priceOrder();
+    if (priceOrder && changedSet.has(priceOrder.idOrder)) {
+      const fresh = orders.find((order) => order.idOrder === priceOrder.idOrder);
+      if (!fresh) return;
+      if (this.isPriceLocked(fresh)) {
+        this.closePriceModal();
+        return;
+      }
+      this.priceOrder.set({
+        ...fresh,
+        customRate: priceOrder.customRate,
+        selectedAmount: priceOrder.selectedAmount ?? fresh.selectedAmount,
+      });
+    }
+  }
+
+  private markOrderAsUpdated(idOrder: number): void {
+    const existingTimer = this.updatedRowTimers.get(idOrder);
+    if (existingTimer) clearTimeout(existingTimer);
+
+    this.updatedOrderIds.update((ids) => {
+      const next = new Set(ids);
+      next.add(idOrder);
+      return next;
+    });
+
+    const timer = setTimeout(() => {
+      this.updatedOrderIds.update((ids) => {
+        const next = new Set(ids);
+        next.delete(idOrder);
+        return next;
+      });
+      this.updatedRowTimers.delete(idOrder);
+    }, 4500);
+    this.updatedRowTimers.set(idOrder, timer);
   }
 
   // Activa el modal y le asigna la orden seleccionada

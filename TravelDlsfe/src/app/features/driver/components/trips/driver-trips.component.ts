@@ -108,7 +108,7 @@ import { interval, Subscription, switchMap, startWith } from 'rxjs';
                         @if (activeTrackingOrderId() === trip.idOrder) {
                           <div class="gps-indicator">
                             <span class="gps-dot"></span>
-                            GPS Activo
+                            {{ gpsStatus() }}
                           </div>
                         }
                       }
@@ -348,11 +348,14 @@ export class DriverTripsComponent implements OnInit, OnDestroy {
   loading = signal(true);
   actionLoading = signal<number | null>(null);
   activeTrackingOrderId = signal<number | null>(null);
+  gpsStatus = signal('GPS activo');
 
   private pollSub?: Subscription;
   private locationWatchId: number | null = null;
   private locationIntervalSub?: Subscription;
   private currentCoords: { lat: number; lng: number } | null = null;
+  private readonly goodGpsAccuracyMeters = 100;
+  private readonly maxGpsAccuracyMeters = 500;
 
   ngOnInit(): void {
     this.startPolling();
@@ -459,16 +462,36 @@ export class DriverTripsComponent implements OnInit, OnDestroy {
   }
 
   private startGeolocation(idOrder: number): void {
+    this.stopGeolocation();
+    this.activeTrackingOrderId.set(idOrder);
+    this.gpsStatus.set('Esperando GPS real...');
+
     if (!navigator.geolocation) {
+      this.gpsStatus.set('GPS no disponible');
       return;
     }
-
-    this.activeTrackingOrderId.set(idOrder);
 
     this.locationWatchId = navigator.geolocation.watchPosition(
       (position) => {
         const newLat = position.coords.latitude;
         const newLng = position.coords.longitude;
+        const accuracy = position.coords.accuracy;
+
+        if (!Number.isFinite(newLat) || !Number.isFinite(newLng)) {
+          this.gpsStatus.set('GPS inválido');
+          return;
+        }
+
+        if (Number.isFinite(accuracy) && accuracy > this.maxGpsAccuracyMeters) {
+          this.gpsStatus.set(`GPS muy impreciso (${Math.round(accuracy)} m)`);
+          return;
+        }
+
+        if (Number.isFinite(accuracy) && accuracy > this.goodGpsAccuracyMeters) {
+          this.gpsStatus.set(`GPS aproximado (${Math.round(accuracy)} m)`);
+        } else {
+          this.gpsStatus.set('GPS activo');
+        }
 
         if (!this.currentCoords) {
           this.currentCoords = { lat: newLat, lng: newLng };
@@ -486,28 +509,18 @@ export class DriverTripsComponent implements OnInit, OnDestroy {
           this.currentCoords = { lat: newLat, lng: newLng };
         }
       },
-      () => {},
+      (error) => {
+        const denied = error.code === error.PERMISSION_DENIED;
+        this.gpsStatus.set(denied ? 'GPS sin permiso' : 'GPS sin señal');
+      },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
     );
 
-    let simulatedLat = 12.1328;
-    let simulatedLng = -86.2504;
-
     this.locationIntervalSub = interval(15000).subscribe(() => {
-      let latToSend: number;
-      let lngToSend: number;
-
-      if (this.currentCoords) {
-        latToSend = this.currentCoords.lat;
-        lngToSend = this.currentCoords.lng;
-      } else {
-        simulatedLat += 0.0001;
-        simulatedLng += 0.0001;
-        latToSend = simulatedLat;
-        lngToSend = simulatedLng;
-      }
-
-      this.orderService.updateOrderLocation(idOrder, latToSend, lngToSend).subscribe({ error: () => {} });
+      if (!this.currentCoords) return;
+      this.orderService
+        .updateOrderLocation(idOrder, this.currentCoords.lat, this.currentCoords.lng)
+        .subscribe({ error: () => {} });
     });
   }
 
@@ -520,6 +533,7 @@ export class DriverTripsComponent implements OnInit, OnDestroy {
     this.locationIntervalSub = undefined;
     this.currentCoords = null;
     this.activeTrackingOrderId.set(null);
+    this.gpsStatus.set('GPS activo');
   }
 
   statusLabel(status: string): string {

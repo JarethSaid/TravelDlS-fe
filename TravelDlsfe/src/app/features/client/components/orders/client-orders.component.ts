@@ -28,6 +28,10 @@ import { forkJoin, Subscription, interval } from 'rxjs';
 import * as L from 'leaflet';
 
 type StatusKey = 'pendiente' | 'entregado' | 'cancelado' | 'en_transito' | 'confirmado';
+type TrackingPoint = { lat: number; lng: number };
+type GeocodedDestination = TrackingPoint & { label: string };
+type RouteResult = { coords: TrackingPoint[]; distanceKm: number; durationMinutes: number };
+type SimulationStatus = 'idle' | 'running' | 'paused' | 'finished' | 'error';
 
 @Component({
   selector: 'app-client-orders',
@@ -317,7 +321,7 @@ type StatusKey = 'pendiente' | 'entregado' | 'cancelado' | 'en_transito' | 'conf
               </thead>
               <tbody>
                 @for (order of filteredOrders(); track order.idOrder) {
-                  <tr>
+                  <tr [class.order-row--updated]="updatedOrderIds().has(order.idOrder)">
                     <td class="order-id">#{{ order.idOrder }}</td>
                     <td>
                       <button class="btn-view-details" (click)="viewOrderDetails(order)">
@@ -693,7 +697,7 @@ type StatusKey = 'pendiente' | 'entregado' | 'cancelado' | 'en_transito' | 'conf
               </div>
               <h2>Seguimiento del Pedido #{{ trackingOrder()?.idOrder }}</h2>
               <p class="tracking-subtitle">
-                La ubicación del conductor se actualiza automáticamente cada 15 segundos
+                La ubicación del conductor se actualiza automáticamente cada 10 segundos
               </p>
             </div>
             <button class="btn-close-modal" (click)="closeTrackingModal()">
@@ -704,6 +708,84 @@ type StatusKey = 'pendiente' | 'entregado' | 'cancelado' | 'en_transito' | 'conf
           <!-- Mapa -->
           <div class="tracking-map-container">
             <div id="tracking-map" class="tracking-map"></div>
+            <section class="tracking-simulation-panel">
+              <div class="simulation-heading">
+                <div>
+                  <span class="simulation-kicker">Simulación</span>
+                  <strong>Vista aproximada hasta el destino</strong>
+                </div>
+                <span class="simulation-status" [class]="'simulation-status simulation-status--' + simulationStatus()">
+                  {{ simulationStatusLabel() }}
+                </span>
+              </div>
+
+              <div class="simulation-controls">
+                <label class="simulation-speed-field">
+                  <span>Velocidad del camión</span>
+                  <div class="simulation-speed-input">
+                    <input
+                      type="number"
+                      min="5"
+                      max="120"
+                      step="5"
+                      [ngModel]="simulationSpeedKmh()"
+                      (ngModelChange)="updateSimulationSpeed($event)"
+                      [disabled]="simulationStatus() === 'running'"
+                    />
+                    <small>km/h</small>
+                  </div>
+                </label>
+
+                <div class="simulation-metrics">
+                  <div>
+                    <span>Distancia</span>
+                    <strong>{{ simulationDistanceKm() | number: '1.1-1' }} km</strong>
+                  </div>
+                  <div>
+                    <span>ETA</span>
+                    <strong>{{ simulationEtaLabel() }}</strong>
+                  </div>
+                  <div>
+                    <span>Avance</span>
+                    <strong>{{ simulationProgressPct() | number: '1.0-0' }}%</strong>
+                  </div>
+                </div>
+
+                <div class="simulation-actions">
+                  <button type="button" class="btn-simulate" (click)="startSimulation()" [disabled]="!canStartSimulation()">
+                    @if (simulationLoading()) {
+                      <i class="fa-solid fa-spinner fa-spin"></i>
+                      Calculando...
+                    } @else {
+                      <i class="fa-solid fa-play"></i>
+                      Simular
+                    }
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-simulation-secondary"
+                    (click)="toggleSimulationPause()"
+                    [disabled]="simulationStatus() !== 'running' && simulationStatus() !== 'paused'"
+                  >
+                    <i [class]="simulationStatus() === 'paused' ? 'fa-solid fa-play' : 'fa-solid fa-pause'"></i>
+                    {{ simulationStatus() === 'paused' ? 'Reanudar' : 'Pausar' }}
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-simulation-secondary"
+                    (click)="resetSimulation()"
+                    [disabled]="simulationStatus() === 'idle' && simulationProgressPct() === 0"
+                  >
+                    <i class="fa-solid fa-rotate-left"></i>
+                    Reiniciar
+                  </button>
+                </div>
+              </div>
+
+              @if (simulationMessage()) {
+                <p class="simulation-message">{{ simulationMessage() }}</p>
+              }
+            </section>
 
             <!-- Info del conductor -->
             @if (trackingLocation()) {
@@ -746,6 +828,7 @@ export class ClientOrdersComponent implements OnInit, OnDestroy {
   readonly allOrders = signal<ClientOrder[]>([]);
   readonly filteredOrders = signal<ClientOrder[]>([]);
   readonly meta = signal<OrderPaginator['meta'] | null>(null);
+  readonly updatedOrderIds = signal<Set<number>>(new Set());
 
   // Company picker state
   readonly loadingCompanies = signal(false);
@@ -767,12 +850,22 @@ export class ClientOrdersComponent implements OnInit, OnDestroy {
   activeFilter = 'all';
   perPage = 10;
   currentPage = 1;
+  private ordersPollSub?: Subscription;
+  private readonly ordersRefreshMs = 10000;
+  private readonly updatedRowTimers = new Map<number, ReturnType<typeof setTimeout>>();
 
   // ── Tracking state ──
   readonly showTrackingModal = signal(false);
   readonly trackingOrder = signal<ClientOrder | null>(null);
   readonly trackingLocation = signal<{ latitude: number; longitude: number } | null>(null);
   readonly lastTrackingUpdate = signal<string>('--');
+  readonly simulationStatus = signal<SimulationStatus>('idle');
+  readonly simulationSpeedKmh = signal(45);
+  readonly simulationDistanceKm = signal(0);
+  readonly simulationEtaMinutes = signal(0);
+  readonly simulationProgressPct = signal(0);
+  readonly simulationMessage = signal('');
+  readonly simulationLoading = signal(false);
   private trackingMap: L.Map | null = null;
   private driverMarker: L.Marker | null = null;
   private destinationMarker: L.Marker | null = null;
@@ -780,38 +873,134 @@ export class ClientOrdersComponent implements OnInit, OnDestroy {
   // Ruta recorrida
   private routePolyline: L.Polyline | null = null;
   private routeCoords: L.LatLngExpression[] = [];
+  private simulationRoutePolyline: L.Polyline | null = null;
+  private simulationProgressPolyline: L.Polyline | null = null;
+  private simulationRoute: TrackingPoint[] = [];
+  private simulationFrameId: number | null = null;
+  private simulationStartedAt = 0;
+  private simulationElapsedBeforePause = 0;
+  private simulationPreviewDurationMs = 0;
+  private readonly geocodeCache = new Map<string, GeocodedDestination | null>();
+  private readonly trackingMaxAgeMs = 2 * 60 * 1000;
   // Para animación suave
   private animFrameId: number | null = null;
   private prevLatLng: L.LatLng | null = null;
 
   ngOnInit(): void {
     this.loadOrders();
+    this.startOrdersPolling();
     this.loadCompanies();
   }
 
   ngOnDestroy(): void {
+    this.stopOrdersPolling();
     this.destroyTrackingMap();
   }
 
   /* ── Orders ── */
-  private loadOrders(): void {
+  private loadOrders(options: { silent?: boolean } = {}): void {
     const u = this.auth.user();
     if (!u?.idClient) {
       this.loading.set(false);
       return;
     }
-    this.loading.set(true);
+    if (!options.silent) this.loading.set(true);
     this.clientService
       .getOrders({ idClient: u.idClient, page: this.currentPage, perPage: this.perPage })
       .subscribe({
         next: (res) => {
-          this.allOrders.set(res.data);
-          this.meta.set(res.meta);
-          this.applyFilterLocal();
-          this.loading.set(false);
+          this.applyOrdersResponse(res, !!options.silent);
+          if (!options.silent) this.loading.set(false);
         },
-        error: () => this.loading.set(false),
+        error: () => {
+          if (!options.silent) this.loading.set(false);
+        },
       });
+  }
+
+  private startOrdersPolling(): void {
+    this.ordersPollSub?.unsubscribe();
+    this.ordersPollSub = interval(this.ordersRefreshMs).subscribe(() => {
+      this.loadOrders({ silent: true });
+    });
+  }
+
+  private stopOrdersPolling(): void {
+    this.ordersPollSub?.unsubscribe();
+    this.ordersPollSub = undefined;
+    this.updatedRowTimers.forEach((timer) => clearTimeout(timer));
+    this.updatedRowTimers.clear();
+    this.updatedOrderIds.set(new Set());
+  }
+
+  private applyOrdersResponse(res: OrderPaginator, highlightChanges: boolean): void {
+    const orders = res.data ?? [];
+    const changedIds = highlightChanges ? this.getStatusChangedOrderIds(this.allOrders(), orders) : [];
+
+    this.allOrders.set(orders);
+    this.meta.set(res.meta);
+    this.applyFilterLocal();
+    this.syncOpenOrderState(orders, changedIds);
+    changedIds.forEach((idOrder) => this.markOrderAsUpdated(idOrder));
+  }
+
+  private getStatusChangedOrderIds(previous: ClientOrder[], next: ClientOrder[]): number[] {
+    const previousStatus = new Map(previous.map((order) => [order.idOrder, order.status]));
+    return next
+      .filter((order) => previousStatus.has(order.idOrder) && previousStatus.get(order.idOrder) !== order.status)
+      .map((order) => order.idOrder);
+  }
+
+  private syncOpenOrderState(orders: ClientOrder[], changedIds: number[]): void {
+    if (changedIds.length === 0) return;
+    const changedSet = new Set(changedIds);
+
+    const selected = this.selectedOrderDetail();
+    if (selected && changedSet.has(selected.idOrder)) {
+      const fresh = orders.find((order) => order.idOrder === selected.idOrder);
+      if (fresh) this.selectedOrderDetail.set(this.mergeOrderSnapshot(selected, fresh));
+    }
+
+    const trackingOrder = this.trackingOrder();
+    if (trackingOrder && changedSet.has(trackingOrder.idOrder)) {
+      const fresh = orders.find((order) => order.idOrder === trackingOrder.idOrder);
+      if (!fresh) return;
+      if (fresh.status === 'entregado') {
+        this.closeTrackingModal();
+        return;
+      }
+      this.trackingOrder.set(this.mergeOrderSnapshot(trackingOrder, fresh));
+    }
+  }
+
+  private mergeOrderSnapshot(current: ClientOrder, fresh: ClientOrder): ClientOrder {
+    return {
+      ...current,
+      ...fresh,
+      details: fresh.details ?? current.details,
+      payment: fresh.payment ?? current.payment,
+    };
+  }
+
+  private markOrderAsUpdated(idOrder: number): void {
+    const existingTimer = this.updatedRowTimers.get(idOrder);
+    if (existingTimer) clearTimeout(existingTimer);
+
+    this.updatedOrderIds.update((ids) => {
+      const next = new Set(ids);
+      next.add(idOrder);
+      return next;
+    });
+
+    const timer = setTimeout(() => {
+      this.updatedOrderIds.update((ids) => {
+        const next = new Set(ids);
+        next.delete(idOrder);
+        return next;
+      });
+      this.updatedRowTimers.delete(idOrder);
+    }, 4500);
+    this.updatedRowTimers.set(idOrder, timer);
   }
 
   applyFilter(filter: string): void {
@@ -1189,11 +1378,9 @@ export class ClientOrdersComponent implements OnInit, OnDestroy {
       zoomControl: true,
     });
 
-    // Capa de mosaicos con apariencia visual de Google Maps (sin API Key)
-    L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-      maxZoom: 20,
-      subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-      attribution: '&copy; Google Maps',
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors',
     }).addTo(this.trackingMap);
 
     // Inicializar la polyline vacía para trazar la ruta
@@ -1215,6 +1402,351 @@ export class ClientOrdersComponent implements OnInit, OnDestroy {
     });
   }
 
+  canStartSimulation(): boolean {
+    const status = this.simulationStatus();
+    return !this.simulationLoading() && status !== 'running' && !!this.trackingLocation() && this.getTrackingDestinationAddress().length > 0;
+  }
+
+  updateSimulationSpeed(value: unknown): void {
+    const parsed = Number(value);
+    const nextSpeed = Number.isFinite(parsed) ? Math.min(Math.max(parsed, 5), 120) : 45;
+    this.simulationSpeedKmh.set(nextSpeed);
+    this.updateSimulationEta();
+  }
+
+  simulationEtaLabel(): string {
+    const minutes = this.simulationEtaMinutes();
+    if (minutes <= 0) return '--';
+    if (minutes < 1) return 'Menos de 1 min';
+    if (minutes < 60) return `${Math.ceil(minutes)} min`;
+    const hours = Math.floor(minutes / 60);
+    const rest = Math.ceil(minutes % 60);
+    return rest > 0 ? `${hours} h ${rest} min` : `${hours} h`;
+  }
+
+  simulationStatusLabel(): string {
+    const labels: Record<SimulationStatus, string> = {
+      idle: 'Lista',
+      running: 'En simulación',
+      paused: 'Pausada',
+      finished: 'Completada',
+      error: 'Sin datos',
+    };
+    return labels[this.simulationStatus()];
+  }
+
+  async startSimulation(): Promise<void> {
+    if (!this.trackingMap) return;
+
+    const currentLocation = this.trackingLocation();
+    const destinationAddress = this.getTrackingDestinationAddress();
+
+    if (!currentLocation) {
+      this.simulationStatus.set('error');
+      this.simulationMessage.set('Esperando ubicación real del conductor para iniciar la simulación.');
+      return;
+    }
+
+    if (!destinationAddress) {
+      this.simulationStatus.set('error');
+      this.simulationMessage.set('Este pedido no tiene dirección de destino para simular.');
+      return;
+    }
+
+    this.clearSimulation(false);
+    this.simulationLoading.set(true);
+    this.simulationMessage.set('Buscando destino y ruta real...');
+
+    const origin: TrackingPoint = { lat: currentLocation.latitude, lng: currentLocation.longitude };
+
+    try {
+      const destination = await this.geocodeDestination(destinationAddress);
+      if (!destination) {
+        this.simulationStatus.set('error');
+        this.simulationMessage.set('No se pudo ubicar esa dirección en OpenStreetMap. Revisa que sea más específica.');
+        return;
+      }
+
+      const route = await this.fetchOsrmRoute(origin, destination);
+      if (!route || route.coords.length < 2) {
+        this.simulationStatus.set('error');
+        this.simulationMessage.set('No se pudo calcular una ruta real para este origen y destino.');
+        return;
+      }
+
+      this.simulationRoute = route.coords;
+      this.simulationDistanceKm.set(route.distanceKm);
+      this.updateSimulationEta();
+      this.simulationProgressPct.set(0);
+      this.simulationStatus.set('running');
+      this.simulationMessage.set(`Ruta real calculada con OSRM hacia ${destination.label}.`);
+      this.simulationElapsedBeforePause = 0;
+      this.simulationPreviewDurationMs = Math.max(8000, Math.min(45000, this.simulationEtaMinutes() * 60_000 / 8));
+
+      this.simulationRoutePolyline = L.polyline(route.coords.map((point) => [point.lat, point.lng] as [number, number]), {
+        color: '#0ea5e9',
+        weight: 5,
+        opacity: 0.72,
+        dashArray: '10, 8',
+        lineJoin: 'round',
+      }).addTo(this.trackingMap);
+
+      this.simulationProgressPolyline = L.polyline([[origin.lat, origin.lng]], {
+        color: '#10b981',
+        weight: 6,
+        opacity: 0.9,
+        lineJoin: 'round',
+      }).addTo(this.trackingMap);
+
+      this.destinationMarker = L.marker([destination.lat, destination.lng], { icon: this.createDestinationIcon() })
+        .addTo(this.trackingMap)
+        .bindPopup(`<strong>Destino</strong><br>${this.escapeHtml(destination.label)}`);
+
+      if (this.driverMarker) {
+        this.driverMarker.setLatLng([origin.lat, origin.lng]);
+        this.driverMarker.setIcon(this.createSimulationTruckIcon());
+      } else {
+        this.driverMarker = L.marker([origin.lat, origin.lng], { icon: this.createSimulationTruckIcon() })
+          .addTo(this.trackingMap)
+          .bindPopup('<strong>Camión</strong><br>Simulación local');
+      }
+
+      const bounds = L.latLngBounds(route.coords.map((point) => [point.lat, point.lng] as [number, number]));
+      this.trackingMap.fitBounds(bounds, { padding: [36, 36], animate: true });
+      this.resumeSimulationAnimation();
+    } catch {
+      this.simulationStatus.set('error');
+      this.simulationMessage.set('No se pudo consultar OpenStreetMap/OSRM en este momento.');
+    } finally {
+      this.simulationLoading.set(false);
+    }
+  }
+
+  toggleSimulationPause(): void {
+    if (this.simulationStatus() === 'running') {
+      if (this.simulationFrameId !== null) {
+        cancelAnimationFrame(this.simulationFrameId);
+        this.simulationFrameId = null;
+      }
+      this.simulationElapsedBeforePause += performance.now() - this.simulationStartedAt;
+      this.simulationStatus.set('paused');
+      return;
+    }
+
+    if (this.simulationStatus() === 'paused') {
+      this.simulationStatus.set('running');
+      this.resumeSimulationAnimation();
+    }
+  }
+
+  resetSimulation(): void {
+    this.clearSimulation(true);
+  }
+
+  private resumeSimulationAnimation(): void {
+    if (this.simulationRoute.length < 2) return;
+    this.simulationStartedAt = performance.now();
+
+    const step = (timestamp: number) => {
+      if (this.simulationStatus() !== 'running') return;
+
+      const elapsed = this.simulationElapsedBeforePause + timestamp - this.simulationStartedAt;
+      const progress = Math.min(elapsed / this.simulationPreviewDurationMs, 1);
+      this.renderSimulationProgress(progress);
+
+      if (progress < 1) {
+        this.simulationFrameId = requestAnimationFrame(step);
+      } else {
+        this.simulationFrameId = null;
+        this.simulationStatus.set('finished');
+        this.simulationMessage.set('Simulación completada. El camión llegó al destino aproximado.');
+      }
+    };
+
+    this.simulationFrameId = requestAnimationFrame(step);
+  }
+
+  private renderSimulationProgress(progress: number): void {
+    const point = this.pointOnRoute(progress);
+    if (!point) return;
+
+    this.simulationProgressPct.set(progress * 100);
+    this.driverMarker?.setLatLng([point.lat, point.lng]);
+
+    const lastIndex = this.simulationRoute.length - 1;
+    const exactIndex = progress * lastIndex;
+    const baseIndex = Math.max(0, Math.floor(exactIndex));
+    const traveled = this.simulationRoute.slice(0, baseIndex + 1).map((routePoint) => [routePoint.lat, routePoint.lng] as [number, number]);
+    traveled.push([point.lat, point.lng]);
+    this.simulationProgressPolyline?.setLatLngs(traveled);
+  }
+
+  private pointOnRoute(progress: number): TrackingPoint | null {
+    if (this.simulationRoute.length === 0) return null;
+    if (progress >= 1) return this.simulationRoute[this.simulationRoute.length - 1];
+
+    const lastIndex = this.simulationRoute.length - 1;
+    const exactIndex = progress * lastIndex;
+    const startIndex = Math.floor(exactIndex);
+    const endIndex = Math.min(startIndex + 1, lastIndex);
+    const localProgress = exactIndex - startIndex;
+    const start = this.simulationRoute[startIndex];
+    const end = this.simulationRoute[endIndex];
+
+    return {
+      lat: start.lat + (end.lat - start.lat) * localProgress,
+      lng: start.lng + (end.lng - start.lng) * localProgress,
+    };
+  }
+
+  private updateSimulationEta(): void {
+    const distanceKm = this.simulationDistanceKm();
+    const speedKmh = this.simulationSpeedKmh();
+    this.simulationEtaMinutes.set(distanceKm > 0 && speedKmh > 0 ? (distanceKm / speedKmh) * 60 : 0);
+  }
+
+  private getTrackingDestinationAddress(): string {
+    return this.trackingOrder()?.details?.[0]?.deliveryAddress?.trim() ?? '';
+  }
+
+  private async geocodeDestination(address: string): Promise<GeocodedDestination | null> {
+    const cacheKey = address.trim().toLocaleLowerCase();
+    if (this.geocodeCache.has(cacheKey)) return this.geocodeCache.get(cacheKey) ?? null;
+
+    const normalizedQuery = /nicaragua/i.test(address) ? address : `${address}, Nicaragua`;
+    const url = new URL('https://nominatim.openstreetmap.org/search');
+    url.searchParams.set('format', 'jsonv2');
+    url.searchParams.set('limit', '1');
+    url.searchParams.set('countrycodes', 'ni');
+    url.searchParams.set('q', normalizedQuery);
+
+    const response = await fetch(url.toString(), { headers: { Accept: 'application/json' } });
+    if (!response.ok) throw new Error('Nominatim request failed');
+
+    const results = (await response.json()) as Array<{ lat: string; lon: string; display_name?: string }>;
+    const first = results[0];
+    if (!first) {
+      this.geocodeCache.set(cacheKey, null);
+      return null;
+    }
+
+    const lat = Number(first.lat);
+    const lng = Number(first.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      this.geocodeCache.set(cacheKey, null);
+      return null;
+    }
+
+    const destination: GeocodedDestination = {
+      lat,
+      lng,
+      label: first.display_name || address,
+    };
+    this.geocodeCache.set(cacheKey, destination);
+    return destination;
+  }
+
+  private async fetchOsrmRoute(origin: TrackingPoint, destination: TrackingPoint): Promise<RouteResult | null> {
+    const coords = `${origin.lng},${origin.lat};${destination.lng},${destination.lat}`;
+    const url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`;
+    const response = await fetch(url, { headers: { Accept: 'application/json' } });
+    if (!response.ok) throw new Error('OSRM request failed');
+
+    const data = (await response.json()) as {
+      code?: string;
+      routes?: Array<{
+        distance?: number;
+        duration?: number;
+        geometry?: { coordinates?: Array<[number, number]> };
+      }>;
+    };
+    const route = data.routes?.[0];
+    const coordinates = route?.geometry?.coordinates;
+    if (data.code !== 'Ok' || !route || !coordinates?.length) return null;
+
+    return {
+      coords: coordinates.map(([lng, lat]) => ({ lat, lng })),
+      distanceKm: (route.distance ?? 0) / 1000,
+      durationMinutes: (route.duration ?? 0) / 60,
+    };
+  }
+
+  private clearSimulation(resetMarker: boolean): void {
+    if (this.simulationFrameId !== null) {
+      cancelAnimationFrame(this.simulationFrameId);
+      this.simulationFrameId = null;
+    }
+
+    this.simulationRoutePolyline?.remove();
+    this.simulationRoutePolyline = null;
+    this.simulationProgressPolyline?.remove();
+    this.simulationProgressPolyline = null;
+    this.destinationMarker?.remove();
+    this.destinationMarker = null;
+    this.simulationRoute = [];
+    this.simulationStartedAt = 0;
+    this.simulationElapsedBeforePause = 0;
+    this.simulationPreviewDurationMs = 0;
+    this.simulationStatus.set('idle');
+    this.simulationDistanceKm.set(0);
+    this.simulationEtaMinutes.set(0);
+    this.simulationProgressPct.set(0);
+    this.simulationMessage.set('');
+    this.simulationLoading.set(false);
+
+    const location = this.trackingLocation();
+    if (resetMarker && location && this.driverMarker) {
+      this.driverMarker.setLatLng([location.latitude, location.longitude]);
+      this.driverMarker.setIcon(this.createTruckIcon());
+    }
+  }
+
+  private isSimulationControllingMarker(): boolean {
+    return ['running', 'paused', 'finished'].includes(this.simulationStatus());
+  }
+
+  private createTruckIcon(): L.DivIcon {
+    return L.divIcon({
+      className: '',
+      html: `
+              <div style="position: relative; width: 52px; height: 52px;">
+                <div style="position: absolute; inset: 0; border-radius: 50%; background: rgba(99,102,241,0.25); animation: truck-ring 2s ease-out infinite;"></div>
+                <div style="position: absolute; inset: 5px; background: linear-gradient(135deg, #3d39af, #6366f1); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(61,57,175,0.6); border: 3px solid white; font-size: 20px;"><i class="fa-solid fa-truck" style="color: white;"></i></div>
+              </div>`,
+      iconSize: [52, 52],
+      iconAnchor: [26, 26],
+      popupAnchor: [0, -26],
+    });
+  }
+
+  private createSimulationTruckIcon(): L.DivIcon {
+    return L.divIcon({
+      className: '',
+      html: `<div style="width: 46px; height: 46px; border-radius: 50%; background: linear-gradient(135deg, #0f766e, #10b981); display: flex; align-items: center; justify-content: center; color: white; border: 3px solid white; box-shadow: 0 8px 22px rgba(15,118,110,0.45); font-size: 19px;"><i class="fa-solid fa-truck-fast"></i></div>`,
+      iconSize: [46, 46],
+      iconAnchor: [23, 23],
+      popupAnchor: [0, -23],
+    });
+  }
+
+  private createDestinationIcon(): L.DivIcon {
+    return L.divIcon({
+      className: '',
+      html: `<div style="width: 42px; height: 42px; border-radius: 14px 14px 14px 4px; transform: rotate(-45deg); background: #f97316; display: flex; align-items: center; justify-content: center; color: white; border: 3px solid white; box-shadow: 0 8px 18px rgba(249,115,22,0.35);"><i class="fa-solid fa-flag-checkered" style="transform: rotate(45deg);"></i></div>`,
+      iconSize: [42, 42],
+      iconAnchor: [21, 36],
+      popupAnchor: [0, -36],
+    });
+  }
+
+  private escapeHtml(value: string): string {
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
   /** Interpola suavemente el marcador desde prevPos hasta newPos en ~600ms */
   private animateMarkerTo(marker: L.Marker, newLatLng: L.LatLng): void {
     if (this.animFrameId !== null) {
@@ -1253,6 +1785,11 @@ export class ClientOrdersComponent implements OnInit, OnDestroy {
         this.ngZone.run(() => {
           const lat = parseFloat(tracking.latitude);
           const lng = parseFloat(tracking.longitude);
+          if (!Number.isFinite(lat) || !Number.isFinite(lng) || !this.isFreshTracking(tracking)) {
+            this.trackingLocation.set(null);
+            this.clearSimulation(false);
+            return;
+          }
           this.trackingLocation.set({ latitude: lat, longitude: lng });
 
           const now = new Date();
@@ -1283,31 +1820,10 @@ export class ClientOrdersComponent implements OnInit, OnDestroy {
             this.routePolyline?.setLatLngs(this.routeCoords);
           }
 
-          // Ícono del camión con anillo de pulso animado
-          const truckIcon = L.divIcon({
-            className: '',
-            html: `
-              <div style="position: relative; width: 52px; height: 52px;">
-                <div style="
-                  position: absolute; inset: 0;
-                  border-radius: 50%;
-                  background: rgba(99,102,241,0.25);
-                  animation: truck-ring 2s ease-out infinite;
-                "></div>
-                <div style="
-                  position: absolute; inset: 5px;
-                  background: linear-gradient(135deg, #3d39af, #6366f1);
-                  border-radius: 50%;
-                  display: flex; align-items: center; justify-content: center;
-                  box-shadow: 0 4px 14px rgba(61,57,175,0.6);
-                  border: 3px solid white;
-                  font-size: 20px;
-                ">🚛</div>
-              </div>`,
-            iconSize: [52, 52],
-            iconAnchor: [26, 26],
-            popupAnchor: [0, -26],
-          });
+          if (this.isSimulationControllingMarker()) return;
+
+          // Icono del camion con anillo de pulso animado
+          const truckIcon = this.createTruckIcon();
 
           if (this.driverMarker) {
             // Mover el marcador de forma animada y suave
@@ -1318,7 +1834,7 @@ export class ClientOrdersComponent implements OnInit, OnDestroy {
             // Crear el marcador del conductor por primera vez
             this.driverMarker = L.marker(newLatLng, { icon: truckIcon })
               .addTo(this.trackingMap)
-              .bindPopup('<strong>🚛 Conductor</strong><br>Ubicación en tiempo real');
+              .bindPopup('<strong>Conductor</strong><br>Ubicación en tiempo real');
             // Primer punto de la ruta
             this.routeCoords.push([lat, lng]);
             this.routePolyline?.setLatLngs(this.routeCoords);
@@ -1334,7 +1850,15 @@ export class ClientOrdersComponent implements OnInit, OnDestroy {
     });
   }
 
+  private isFreshTracking(tracking: any): boolean {
+    const updatedAt = tracking?.updatedAt || tracking?.createdAt;
+    if (!updatedAt) return true;
+    const timestamp = new Date(updatedAt).getTime();
+    return Number.isFinite(timestamp) && Date.now() - timestamp <= this.trackingMaxAgeMs;
+  }
+
   private destroyTrackingMap(): void {
+    this.clearSimulation(false);
     this.trackingPollSub?.unsubscribe();
     this.trackingPollSub = undefined;
 
