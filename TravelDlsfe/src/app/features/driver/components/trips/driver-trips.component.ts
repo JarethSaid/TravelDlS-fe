@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../../../core/services/auth.service';
 import { OrderService } from '../../../company/services/order.service';
@@ -59,11 +59,6 @@ import { resolveOrderDeliveryAddress } from '../../../../shared/utils/order-addr
                     </td>
                     <td>
                       <div class="trip-cargo">{{ trip.details?.[0]?.cargoDescription || 'Sin descripción' }}</div>
-                      <div class="trip-cargo-meta">
-                        @if (trip.details?.[0]) {
-                          {{ trip.details[0].amount }}x {{ trip.details[0].typePackaging }} ({{ trip.details[0].unitWeight }})
-                        }
-                      </div>
                     </td>
                     <td>
                       <div class="trip-address" [title]="deliveryAddress(trip)">
@@ -78,18 +73,24 @@ import { resolveOrderDeliveryAddress } from '../../../../shared/utils/order-addr
                     </td>
                     <td>
                       @if (trip.status === 'aceptado') {
-                        <button
-                          class="btn-start-trip"
-                          (click)="startTrip(trip)"
-                          [disabled]="actionLoading() === trip.idOrder"
-                        >
-                          @if (actionLoading() === trip.idOrder) {
-                            <i class="fa-solid fa-spinner fa-spin"></i>
-                          } @else {
-                            <i class="fa-solid fa-play"></i>
-                          }
-                          Iniciar Viaje
-                        </button>
+                        @if (hasActiveTrip()) {
+                          <span style="color: #94a3b8; font-size: 13px; font-weight: 500; font-style: italic;">
+                            <i class="fa-solid fa-lock" style="margin-right: 4px;"></i> Otro viaje en curso
+                          </span>
+                        } @else {
+                          <button
+                            class="btn-start-trip"
+                            (click)="startTrip(trip)"
+                            [disabled]="actionLoading() === trip.idOrder"
+                          >
+                            @if (actionLoading() === trip.idOrder) {
+                              <i class="fa-solid fa-spinner fa-spin"></i>
+                            } @else {
+                              <i class="fa-solid fa-play"></i>
+                            }
+                            Iniciar Viaje
+                          </button>
+                        }
                       }
 
                       @if (trip.status === 'en_transito') {
@@ -348,6 +349,7 @@ export class DriverTripsComponent implements OnInit, OnDestroy {
   activeFilter = signal('all');
   trips = signal<any[]>([]);
   filteredTrips = signal<any[]>([]);
+  hasActiveTrip = computed(() => this.trips().some((t) => t.status === 'en_transito'));
   loading = signal(true);
   actionLoading = signal<number | null>(null);
   activeTrackingOrderId = signal<number | null>(null);

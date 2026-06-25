@@ -132,53 +132,59 @@ interface Order {
                                 getDriverName(o.details[0].idDriver)
                             )
                           }}</span>
-                          <button
-                            class="order-driver-edit"
-                            type="button"
-                            (click)="startEditDriver(o)"
-                            title="Cambiar conductor"
-                          >
-                            <i class="fa-solid fa-pen-to-square"></i>
-                          </button>
-                        </div>
-                      } @else if (o.details && o.details[0] && (o.editingDriver || !o.details[0].idDriver)) {
-                        <!-- Selector para asignar / reasignar conductor -->
-                        <div class="order-driver-picker">
-                          <div class="order-driver-select-wrap">
-                            <i class="fa-solid fa-user-tie order-driver-select-icon"></i>
-                            <select
-                              class="order-driver-select"
-                              [(ngModel)]="o.newDriverId"
-                              autocomplete="off"
-                            >
-                              <option [ngValue]="undefined" disabled selected>
-                                {{ o.editingDriver ? 'Seleccione nuevo conductor' : 'Seleccione Conductor' }}
-                              </option>
-                              @for (d of drivers(); track d.idDriver) {
-                                <option [ngValue]="d.idDriver">
-                                  {{ cleanDriverName(d.user?.name || d.name) }}
-                                </option>
-                              }
-                            </select>
-                          </div>
-                          <button
-                            class="order-driver-action order-driver-action--primary"
-                            type="button"
-                            [disabled]="!o.newDriverId"
-                            (click)="confirmDriverEdit(o)"
-                          >
-                            <i class="fa-solid fa-check"></i> {{ o.editingDriver ? 'Cambiar' : 'Asignar' }}
-                          </button>
-                          @if (o.editingDriver) {
+                          @if (!isDriverLocked(o)) {
                             <button
-                              class="order-driver-action order-driver-action--secondary"
+                              class="order-driver-edit"
                               type="button"
-                              (click)="cancelEditDriver(o)"
+                              (click)="startEditDriver(o)"
+                              title="Cambiar conductor"
                             >
-                              <i class="fa-solid fa-xmark"></i> Cancelar
+                              <i class="fa-solid fa-pen-to-square"></i>
                             </button>
                           }
                         </div>
+                      } @else if (o.details && o.details[0] && (o.editingDriver || !o.details[0].idDriver)) {
+                        <!-- Selector para asignar / reasignar conductor -->
+                        @if (isDriverLocked(o)) {
+                          <span class="order-muted-text">Asignación bloqueada</span>
+                        } @else {
+                          <div class="order-driver-picker">
+                            <div class="order-driver-select-wrap">
+                              <i class="fa-solid fa-user-tie order-driver-select-icon"></i>
+                              <select
+                                class="order-driver-select"
+                                [(ngModel)]="o.newDriverId"
+                                autocomplete="off"
+                              >
+                                <option [ngValue]="undefined" disabled selected>
+                                  {{ o.editingDriver ? 'Seleccione nuevo conductor' : 'Seleccione Conductor' }}
+                                </option>
+                                @for (d of drivers(); track d.idDriver) {
+                                  <option [ngValue]="d.idDriver">
+                                    {{ cleanDriverName(d.user?.name || d.name) }}
+                                  </option>
+                                }
+                              </select>
+                            </div>
+                            <button
+                              class="order-driver-action order-driver-action--primary"
+                              type="button"
+                              [disabled]="!o.newDriverId"
+                              (click)="confirmDriverEdit(o)"
+                            >
+                              <i class="fa-solid fa-check"></i> {{ o.editingDriver ? 'Cambiar' : 'Asignar' }}
+                            </button>
+                            @if (o.editingDriver) {
+                              <button
+                                class="order-driver-action order-driver-action--secondary"
+                                type="button"
+                                (click)="cancelEditDriver(o)"
+                              >
+                                <i class="fa-solid fa-xmark"></i> Cancelar
+                              </button>
+                            }
+                          </div>
+                        }
                       } @else {
                         <span class="order-muted-text">Sin detalles</span>
                       }
@@ -874,7 +880,7 @@ export class OrdersListComponent implements OnInit, OnDestroy {
   }
 
   loadDrivers(): void {
-    let p = new HttpParams().set('perPage', 100);
+    let p = new HttpParams().set('perPage', 100).set('hasTruck', 'true');
     if (this.companyId) p = p.set('idCompany', this.companyId);
     this.driverService.getDrivers(p).subscribe({
       next: (res) => this.drivers.set(res.data || []),
@@ -1196,6 +1202,10 @@ export class OrdersListComponent implements OnInit, OnDestroy {
 
   isPriceLocked(order: Order): boolean {
     return ['aceptado', 'en_transito', 'entregado'].includes(order.status);
+  }
+
+  isDriverLocked(order: Order): boolean {
+    return ['entregado', 'completado', 'cancelado', 'anulado'].includes(order.status);
   }
 
   calculateByRate(order: Order, rate: number | undefined): void {
