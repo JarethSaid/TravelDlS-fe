@@ -26,6 +26,13 @@ export const clientRoutes: Routes = [
           ),
       },
       {
+        path: 'payments',
+        loadComponent: () =>
+          import('../components/payments/client-payments.component').then(
+            (m) => m.ClientPaymentsComponent,
+          ),
+      },
+      {
         path: 'profile',
         loadComponent: () =>
           import('../components/profile/client-profile.component').then(

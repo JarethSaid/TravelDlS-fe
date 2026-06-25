@@ -46,9 +46,25 @@ export interface Payment {
   last4: string | null;
   transferReference: string | null;
   referenceCode: string;
+  cancellationReason?: string | null;
   paidAt: string | null;
   createdAt: string;
   updatedAt: string;
+  order?: { idOrder: number; status: string } | null;
+  client?: { companyName?: string; user?: { name?: string; email?: string } } | null;
+  company?: { businessName?: string } | null;
+}
+
+export interface PaymentPaginator {
+  meta: {
+    total: number;
+    perPage: number;
+    currentPage: number;
+    lastPage: number;
+    firstPage: number;
+  };
+  data: Payment[];
+  summary?: { totalAmount: number };
 }
 
 export interface SimulatePaymentPayload {

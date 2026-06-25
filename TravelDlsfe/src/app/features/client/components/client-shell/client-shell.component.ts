@@ -538,6 +538,7 @@ export class ClientShellComponent {
   readonly navItems: NavItem[] = [
     { label: 'Dashboard',   icon: 'fa-solid fa-chart-pie',      route: '/client/dashboard' },
     { label: 'Mis Órdenes', icon: 'fa-solid fa-clipboard-list', route: '/client/orders' },
+    { label: 'Pagos',       icon: 'fa-solid fa-receipt',        route: '/client/payments' },
     { label: 'Mi Perfil',   icon: 'fa-solid fa-user',           route: '/client/profile' },
   ];
 

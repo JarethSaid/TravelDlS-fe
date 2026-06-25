@@ -300,6 +300,7 @@ interface StatCard {
     .status-en_transito { background: #dbeafe; color: #1d4ed8; }
     .status-entregado { background: #dcfce7; color: #166534; }
     .status-cancelado { background: #fee2e2; color: #b91c1c; }
+    .status-anulado { background: #fee2e2; color: #b91c1c; }
   `]
 })
 export class DriverDashboardComponent implements OnInit {
@@ -375,6 +376,7 @@ export class DriverDashboardComponent implements OnInit {
       en_transito: 'En tránsito',
       entregado: 'Entregado',
       cancelado: 'Cancelado',
+      anulado: 'Anulada',
     };
     return map[status] ?? status;
   }
