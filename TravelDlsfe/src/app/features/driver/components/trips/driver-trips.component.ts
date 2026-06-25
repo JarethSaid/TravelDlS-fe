@@ -270,6 +270,7 @@ import { resolveOrderDeliveryAddress } from '../../../../shared/utils/order-addr
     .status-en_transito { background: #dbeafe; color: #1d4ed8; }
     .status-entregado { background: #dcfce7; color: #166534; }
     .status-cancelado { background: #fee2e2; color: #b91c1c; }
+    .status-anulado { background: #fee2e2; color: #b91c1c; }
 
     .btn-start-trip {
       display: inline-flex;
@@ -436,6 +437,7 @@ export class DriverTripsComponent implements OnInit, OnDestroy {
   }
 
   startTrip(trip: any): void {
+    if (trip.status !== 'aceptado') return;
     this.actionLoading.set(trip.idOrder);
     this.orderService.updateOrderStatus(trip.idOrder, 'en_transito').subscribe({
       next: () => {
@@ -547,6 +549,7 @@ export class DriverTripsComponent implements OnInit, OnDestroy {
       en_transito: 'En tránsito',
       entregado: 'Entregado',
       cancelado: 'Cancelado',
+      anulado: 'Anulada',
     };
     return map[status] ?? status;
   }

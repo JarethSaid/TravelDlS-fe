@@ -1104,6 +1104,7 @@ export class OrdersListComponent implements OnInit, OnDestroy {
       en_proceso: 'En proceso',
       completado: 'Completado',
       cancelado: 'Cancelado',
+      anulado: 'Anulada',
       denegado: 'Denegado',
     };
     return map[status] ?? status;
@@ -1120,6 +1121,7 @@ export class OrdersListComponent implements OnInit, OnDestroy {
       en_proceso: 'badge-resort badge-activa',
       completado: 'badge-resort badge-finalizada',
       cancelado: 'badge-resort badge-cancelada',
+      anulado: 'badge-resort badge-cancelada',
       denegado: 'badge-resort badge-cancelada',
     };
     return map[status] ?? 'badge-resort badge-pendiente';

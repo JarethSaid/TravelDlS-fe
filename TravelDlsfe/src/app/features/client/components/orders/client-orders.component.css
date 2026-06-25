@@ -426,6 +426,10 @@
   background: #fee2e2;
   color: #dc2626;
 }
+.status-anulado {
+  background: #fee2e2;
+  color: #dc2626;
+}
 .status-en_transito {
   background: #dbeafe;
   color: #2563eb;

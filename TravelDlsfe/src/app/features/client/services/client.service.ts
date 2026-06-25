@@ -9,6 +9,7 @@ import {
   OrderPaginator,
   CompanyPaginator,
   Payment,
+  PaymentPaginator,
   SimulatePaymentPayload,
 } from '../interface/client.interface';
 
@@ -100,6 +101,27 @@ export class ClientService {
     return this.http.post<ClientOrder>(`${this.base}/api/orders/${idOrder}/payments/simulate`, body);
   }
 
+  getPayments(params: {
+    page?: number;
+    perPage?: number;
+    status?: string;
+    summaryStatus?: string;
+    method?: string;
+    search?: string;
+  }): Observable<PaymentPaginator> {
+    let p = new HttpParams()
+      .set('page', params.page ?? 1)
+      .set('perPage', params.perPage ?? 10);
+    if (params.status) p = p.set('status', params.status);
+    if (params.summaryStatus) p = p.set('summaryStatus', params.summaryStatus);
+    if (params.method) p = p.set('method', params.method);
+    if (params.search) p = p.set('search', params.search);
+    return this.http.get<PaymentPaginator>(`${this.base}/api/payments`, { params: p });
+  }
+
+  cancelPayment(idPayment: number, reason: string): Observable<Payment> {
+    return this.http.patch<Payment>(`${this.base}/api/payments/${idPayment}/cancel`, { reason });
+  }
   getOrderPayment(idOrder: number): Observable<Payment> {
     return this.http.get<Payment>(`${this.base}/api/orders/${idOrder}/payment`);
   }

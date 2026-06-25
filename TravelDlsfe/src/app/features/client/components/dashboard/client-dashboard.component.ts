@@ -290,6 +290,11 @@ interface StatCard {
       color: #dc2626;
     }
 
+    .status-anulado {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+
     .status-completada {
       background: #dcfce7;
       color: #16a34a;
@@ -383,6 +388,7 @@ export class ClientDashboardComponent implements OnInit {
       en_transito: 'En tránsito',
       entregado: 'Entregado',
       cancelado: 'Cancelado',
+      anulado: 'Anulada',
       completada: 'Completada',
       cancelada: 'Cancelada',
       en_proceso: 'En proceso',

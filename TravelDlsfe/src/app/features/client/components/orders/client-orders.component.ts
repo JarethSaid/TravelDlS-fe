@@ -1019,7 +1019,7 @@ export class ClientOrdersComponent implements OnInit, OnDestroy {
     } else if (this.activeFilter === 'delivered') {
       this.filteredOrders.set(all.filter((o) => ['entregado', 'completado', 'completada'].includes(o.status)));
     } else if (this.activeFilter === 'cancelled') {
-      this.filteredOrders.set(all.filter((o) => o.status === 'cancelado'));
+      this.filteredOrders.set(all.filter((o) => o.status === 'cancelado' || o.status === 'anulado'));
     } else {
       this.filteredOrders.set(all.filter((o) => o.status === this.activeFilter));
     }
@@ -1047,6 +1047,7 @@ export class ClientOrdersComponent implements OnInit, OnDestroy {
       pendiente: 'Pendiente',
       entregado: 'Entregado',
       cancelado: 'Cancelado',
+      anulado: 'Anulada',
       en_transito: 'En tránsito',
       completada: 'Completada',
       cancelada: 'Cancelada',
