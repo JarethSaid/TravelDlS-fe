@@ -392,6 +392,7 @@ export class DriverShellComponent {
   readonly navItems: NavItem[] = [
     { label: 'Dashboard',  icon: 'fa-solid fa-chart-pie',    route: '/driver/dashboard' },
     { label: 'Mis Viajes', icon: 'fa-solid fa-location-dot', route: '/driver/trips' },
+    { label: 'Mi Camion', icon: 'fa-solid fa-truck', route: '/driver/truck' },
     { label: 'Mi Perfil',  icon: 'fa-solid fa-user',         route: '/driver/profile' },
   ];
 

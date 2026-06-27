@@ -301,6 +301,7 @@ interface StatCard {
     .status-entregado { background: #dcfce7; color: #166534; }
     .status-cancelado { background: #fee2e2; color: #b91c1c; }
     .status-anulado { background: #fee2e2; color: #b91c1c; }
+    .status-denegado { background: #fee2e2; color: #b91c1c; }
   `]
 })
 export class DriverDashboardComponent implements OnInit {
@@ -377,7 +378,9 @@ export class DriverDashboardComponent implements OnInit {
       entregado: 'Entregado',
       cancelado: 'Cancelado',
       anulado: 'Anulada',
+      denegado: 'Denegado',
     };
     return map[status] ?? status;
   }
 }
+

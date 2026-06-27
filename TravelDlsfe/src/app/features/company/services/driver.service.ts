@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, map } from 'rxjs'; // <-- Agregamos 'map' aquí
+import { Observable } from 'rxjs';
 import { API_BASE_URL } from '../../../core/api-base-url';
 
 /** Rol Conductor en BD (role_id = 1) */
@@ -84,23 +84,8 @@ export class CompanyDriverService {
   private readonly http = inject(HttpClient);
   private readonly base = inject(API_BASE_URL);
 
-  // MODIFICADO: Interceptamos la respuesta para mutar el estado inicial 'offline'
   getDrivers(params: HttpParams): Observable<PaginatedDriversResponse> {
-    return this.http.get<PaginatedDriversResponse>(`${this.base}/api/drivers`, { params }).pipe(
-      map((res: PaginatedDriversResponse) => {
-        if (res && res.data) {
-          res.data = res.data.map((driver: Driver) => {
-            // Si el backend lo manda como 'offline' (por el comportamiento del login),
-            // pero ya tiene un usuario vinculado, lo forzamos a estar 'available' por defecto
-            if (driver.user && driver.status?.toLowerCase() === 'offline') {
-              driver.status = 'available';
-            }
-            return driver;
-          });
-        }
-        return res;
-      }),
-    );
+    return this.http.get<PaginatedDriversResponse>(`${this.base}/api/drivers`, { params });
   }
 
   getDriversWithoutUser(idCompany: number): Observable<UnassignedDriver[]> {

@@ -295,6 +295,11 @@ interface StatCard {
       color: #dc2626;
     }
 
+    .status-denegado {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+
     .status-completada {
       background: #dcfce7;
       color: #16a34a;
@@ -389,6 +394,7 @@ export class ClientDashboardComponent implements OnInit {
       entregado: 'Entregado',
       cancelado: 'Cancelado',
       anulado: 'Anulada',
+      denegado: 'Denegado',
       completada: 'Completada',
       cancelada: 'Cancelada',
       en_proceso: 'En proceso',
@@ -396,3 +402,6 @@ export class ClientDashboardComponent implements OnInit {
     return map[status] ?? status;
   }
 }
+
+
+
