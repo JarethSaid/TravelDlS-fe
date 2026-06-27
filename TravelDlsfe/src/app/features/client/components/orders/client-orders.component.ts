@@ -19,6 +19,7 @@ import {
   ClientOrder,
   OrderPaginator,
   Company,
+  OrderDetail,
   OrderDetailDraft,
   PACKAGING_TYPES,
   PaymentMethod,
@@ -28,6 +29,7 @@ import { forkJoin, Subscription, interval } from 'rxjs';
 import * as L from 'leaflet';
 
 type StatusKey = 'pendiente' | 'entregado' | 'cancelado' | 'en_transito' | 'confirmado';
+type EditDetailDraft = OrderDetailDraft & { idDetails?: number };
 type TrackingPoint = { lat: number; lng: number };
 type GeocodedDestination = TrackingPoint & { label: string };
 type RouteResult = { coords: TrackingPoint[]; distanceKm: number; durationMinutes: number };
@@ -251,6 +253,242 @@ type SimulationStatus = 'idle' | 'running' | 'paused' | 'finished' | 'error';
         </div>
       }
 
+      <!-- ═══════════ ORDER EDIT MODAL ═══════════ -->
+      @if (showEditModal() && editingOrder()) {
+        <div class="custom-modal-overlay" (click)="closeEditModal()"></div>
+        <div class="custom-modal custom-modal--wide custom-modal--edit">
+          <div class="custom-modal-header edit-modal-header">
+            <div>
+              <div class="edit-modal-badges">
+                <span class="edit-order-badge">Orden #{{ editingOrder()!.idOrder }}</span>
+                <span class="status-chip status-pendiente">Pendiente</span>
+              </div>
+              <h2>Editar pedido de carga</h2>
+              <p class="modal-subtitle">
+                {{ editingOrder()!.company?.businessName ?? 'Empresa' }}
+              </p>
+            </div>
+            <button class="btn-close-modal" (click)="closeEditModal()">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <div class="custom-modal-body modal-body-scroll">
+            <div class="edit-help-banner">
+              <i class="fa-solid fa-circle-info"></i>
+              <span>
+                Cambia los campos directamente abajo y pulsa
+                <strong>Guardar cambios</strong>. Sigue siendo la misma orden #{{
+                  editingOrder()!.idOrder
+                }}.
+              </span>
+            </div>
+
+            @if (editItems.length === 0) {
+              <div class="cart-empty">
+                <i class="fa-solid fa-box-open"></i>
+                <p>Agrega al menos un detalle de carga para continuar</p>
+              </div>
+            } @else {
+              <div class="edit-items-list">
+                @for (item of editItems; track item.idDetails ?? $index; let i = $index) {
+                  <div class="edit-item-card">
+                    <div class="edit-item-card-top">
+                      <span class="edit-item-label">
+                        <i class="fa-solid fa-box"></i> Detalle {{ i + 1 }}
+                        @if (item.idDetails) {
+                          <small>· existente</small>
+                        } @else {
+                          <small>· nuevo</small>
+                        }
+                      </span>
+                      @if (editItems.length > 1) {
+                        <button
+                          class="btn-text-danger"
+                          type="button"
+                          (click)="removeEditItem(i)"
+                          title="Quitar este detalle"
+                        >
+                          <i class="fa-solid fa-trash-can"></i> Quitar
+                        </button>
+                      }
+                    </div>
+
+                    <div class="form-grid">
+                      <div class="form-group form-group--full">
+                        <label [for]="'editDesc' + i">Descripción de carga</label>
+                        <input
+                          [id]="'editDesc' + i"
+                          type="text"
+                          [(ngModel)]="item.cargoDescription"
+                          placeholder="Ej: Harina de trigo, cemento…"
+                          maxlength="255"
+                        />
+                      </div>
+
+                      <div class="form-group">
+                        <label [for]="'editWeight' + i">Peso</label>
+                        <input
+                          [id]="'editWeight' + i"
+                          type="number"
+                          [(ngModel)]="item.weightValue"
+                          (ngModelChange)="syncEditItemWeight(item)"
+                          placeholder="Ej: 50"
+                          min="0"
+                          step="0.01"
+                        />
+                      </div>
+
+                      <div class="form-group">
+                        <label [for]="'editUnit' + i">Unidad</label>
+                        <select
+                          [id]="'editUnit' + i"
+                          [(ngModel)]="item.weightUnit"
+                          (ngModelChange)="syncEditItemWeight(item)"
+                        >
+                          <option value="kg">kg</option>
+                          <option value="lbs">lbs</option>
+                          <option value="Ton">Ton</option>
+                          <option value="qq">qq</option>
+                        </select>
+                      </div>
+
+                      <div class="form-group">
+                        <label [for]="'editPack' + i">Tipo de empaque</label>
+                        <select [id]="'editPack' + i" [(ngModel)]="item.typePackaging">
+                          @for (pt of packagingTypes; track pt.value) {
+                            <option [value]="pt.value">{{ pt.label }}</option>
+                          }
+                        </select>
+                      </div>
+
+                      <div class="form-group form-group--full">
+                        <label [for]="'editAddr' + i">Dirección de entrega</label>
+                        <input
+                          [id]="'editAddr' + i"
+                          type="text"
+                          [(ngModel)]="item.deliveryAddress"
+                          placeholder="Calle, número, ciudad…"
+                          maxlength="255"
+                        />
+                      </div>
+                    </div>
+
+                    @if (!isEditItemValid(item)) {
+                      <p class="edit-item-hint">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        Completa descripción (mín. 3), peso, unidad y dirección (mín. 5 caracteres).
+                      </p>
+                    }
+                  </div>
+                }
+              </div>
+            }
+
+            @if (showAddDetailForm()) {
+              <div class="edit-item-card edit-item-card--new">
+                <div class="edit-item-card-top">
+                  <span class="edit-item-label">
+                    <i class="fa-solid fa-plus"></i> Nuevo detalle
+                  </span>
+                  <button class="btn-text-muted" type="button" (click)="closeAddDetailForm()">
+                    <i class="fa-solid fa-xmark"></i> Cancelar
+                  </button>
+                </div>
+
+                <div class="form-grid">
+                  <div class="form-group form-group--full">
+                    <label for="newEditDesc">Descripción de carga</label>
+                    <input
+                      id="newEditDesc"
+                      type="text"
+                      [(ngModel)]="newEditItem.cargoDescription"
+                      placeholder="Ej: Harina de trigo, cemento…"
+                      maxlength="255"
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="newEditWeight">Peso</label>
+                    <input
+                      id="newEditWeight"
+                      type="number"
+                      [(ngModel)]="newEditItem.weightValue"
+                      placeholder="Ej: 50"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="newEditUnit">Unidad</label>
+                    <select id="newEditUnit" [(ngModel)]="newEditItem.weightUnit">
+                      <option value="kg">kg</option>
+                      <option value="lbs">lbs</option>
+                      <option value="Ton">Ton</option>
+                      <option value="qq">qq</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="newEditPack">Tipo de empaque</label>
+                    <select id="newEditPack" [(ngModel)]="newEditItem.typePackaging">
+                      @for (pt of packagingTypes; track pt.value) {
+                        <option [value]="pt.value">{{ pt.label }}</option>
+                      }
+                    </select>
+                  </div>
+
+                  <div class="form-group form-group--full">
+                    <label for="newEditAddr">Dirección de entrega</label>
+                    <input
+                      id="newEditAddr"
+                      type="text"
+                      [(ngModel)]="newEditItem.deliveryAddress"
+                      placeholder="Calle, número, ciudad…"
+                      maxlength="255"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  class="btn-add-detail"
+                  type="button"
+                  (click)="confirmAddEditItem()"
+                  [disabled]="!isEditItemValid(newEditItem)"
+                >
+                  <i class="fa-solid fa-check"></i> Agregar a la orden
+                </button>
+              </div>
+            } @else {
+              <button class="btn-add-detail-outline" type="button" (click)="openAddDetailForm()">
+                <i class="fa-solid fa-plus"></i> Agregar otro detalle de carga
+              </button>
+            }
+          </div>
+
+          <div class="custom-modal-footer edit-modal-footer">
+            <button class="btn-cancel" type="button" (click)="closeEditModal()" [disabled]="savingEdit()">
+              Descartar
+            </button>
+            <button
+              class="btn-confirm"
+              type="button"
+              (click)="saveEditedOrder()"
+              [disabled]="savingEdit() || !allEditItemsValid()"
+            >
+              @if (savingEdit()) {
+                <i class="fa-solid fa-spinner fa-spin"></i> Guardando...
+              } @else {
+                <i class="fa-solid fa-floppy-disk"></i> Guardar cambios en orden #{{
+                  editingOrder()!.idOrder
+                }}
+              }
+            </button>
+          </div>
+        </div>
+      }
+
       <div class="page-header section-spacing">
         <div class="header-left">
           <h1>Mis Órdenes Históricas</h1>
@@ -324,10 +562,18 @@ type SimulationStatus = 'idle' | 'running' | 'paused' | 'finished' | 'error';
                   <tr [class.order-row--updated]="updatedOrderIds().has(order.idOrder)">
                     <td class="order-id">#{{ order.idOrder }}</td>
                     <td>
-                      <button class="btn-view-details" (click)="viewOrderDetails(order)">
-                        <i class="fa-regular fa-eye"></i>
-                        <span>Ver detalles</span>
-                      </button>
+                      <div class="order-actions">
+                        <button class="btn-view-details" (click)="viewOrderDetails(order)">
+                          <i class="fa-regular fa-eye"></i>
+                          <span>Ver detalles</span>
+                        </button>
+                        @if (canEditOrder(order)) {
+                          <button class="btn-edit-order" (click)="openEditModal(order)">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                            <span>Editar</span>
+                          </button>
+                        }
+                      </div>
                     </td>
                     <td>{{ order.company?.businessName ?? 'Sin asignar' }}</td>
                     <td>
@@ -847,11 +1093,21 @@ export class ClientOrdersComponent implements OnInit, OnDestroy {
   readonly packagingTypes = PACKAGING_TYPES;
   draftDetail: OrderDetailDraft = this.emptyDraft();
 
+  // Edit order state
+  readonly showEditModal = signal(false);
+  readonly editingOrder = signal<ClientOrder | null>(null);
+  readonly savingEdit = signal(false);
+  readonly showAddDetailForm = signal(false);
+  editItems: EditDetailDraft[] = [];
+  newEditItem: OrderDetailDraft = this.emptyDraft();
+  private originalEditDetailIds: number[] = [];
+
   activeFilter = 'all';
   perPage = 10;
   currentPage = 1;
   private ordersPollSub?: Subscription;
   private readonly ordersRefreshMs = 10000;
+  private readonly editableOrderStatus = 'pendiente';
   private readonly updatedRowTimers = new Map<number, ReturnType<typeof setTimeout>>();
 
   // ── Tracking state ──
@@ -941,6 +1197,7 @@ export class ClientOrdersComponent implements OnInit, OnDestroy {
     this.meta.set(res.meta);
     this.applyFilterLocal();
     this.syncOpenOrderState(orders, changedIds);
+    this.syncEditModalState(orders);
     changedIds.forEach((idOrder) => this.markOrderAsUpdated(idOrder));
   }
 
@@ -1291,6 +1548,270 @@ export class ClientOrdersComponent implements OnInit, OnDestroy {
 
   getPackagingLabel(value: string): string {
     return this.packagingTypes.find((p) => p.value === value)?.label ?? value;
+  }
+
+  /* ── Edit Order ── */
+  private isEditableStatus(status: string): boolean {
+    return status === this.editableOrderStatus;
+  }
+
+  canEditOrder(order: ClientOrder): boolean {
+    return this.isEditableStatus(order.status) && !this.hasAssignedPrice(order);
+  }
+
+  hasAssignedPrice(order: ClientOrder): boolean {
+    if (!order.details?.length) return false;
+    return order.details.some((d) => (d.amount ?? 0) > 1);
+  }
+
+  getEditBlockedReason(order: ClientOrder): string | null {
+    if (!this.isEditableStatus(order.status)) {
+      return `Solo se pueden editar órdenes en estado Pendiente (actual: ${this.statusLabel(order.status)}).`;
+    }
+    if (this.hasAssignedPrice(order)) {
+      return 'La empresa ya asignó un precio. No se puede editar.';
+    }
+    return null;
+  }
+
+  private syncEditModalState(orders: ClientOrder[]): void {
+    const editing = this.editingOrder();
+    if (!editing || !this.showEditModal() || this.savingEdit()) return;
+
+    const fresh = orders.find((order) => order.idOrder === editing.idOrder);
+    if (!fresh) {
+      this.closeEditModal();
+      return;
+    }
+
+    if (!this.canEditOrder(fresh)) {
+      const reason = this.getEditBlockedReason(fresh) ?? 'Esta orden ya no se puede editar';
+      this.closeEditModal();
+      this.ui.showToast(reason, 'error');
+      return;
+    }
+
+    this.editingOrder.set(fresh);
+  }
+
+  openEditModal(order: ClientOrder): void {
+    const blockedReason = this.getEditBlockedReason(order);
+    if (blockedReason) {
+      this.ui.showToast(blockedReason, 'error');
+      return;
+    }
+
+    this.clientService.getOrderById(order.idOrder).subscribe({
+      next: (freshOrder) => {
+        const freshBlockedReason = this.getEditBlockedReason(freshOrder);
+        if (freshBlockedReason) {
+          this.ui.showToast(freshBlockedReason, 'error');
+          this.loadOrders();
+          return;
+        }
+
+        const drafts = this.getActiveDetails(freshOrder.details).map((d) => this.detailToDraft(d));
+        this.editingOrder.set(freshOrder);
+        this.editItems = drafts;
+        this.originalEditDetailIds = drafts
+          .map((d) => d.idDetails)
+          .filter((id): id is number => id !== undefined);
+        this.showAddDetailForm.set(false);
+        this.newEditItem = this.emptyDraft();
+        this.showEditModal.set(true);
+      },
+      error: () => {
+        this.ui.showToast('No se pudo cargar la orden para editar', 'error');
+      },
+    });
+  }
+
+  closeEditModal(): void {
+    if (this.savingEdit()) return;
+    this.showEditModal.set(false);
+    this.editingOrder.set(null);
+    this.editItems = [];
+    this.originalEditDetailIds = [];
+    this.showAddDetailForm.set(false);
+    this.newEditItem = this.emptyDraft();
+  }
+
+  private detailToDraft(det: OrderDetail): EditDetailDraft {
+    const match = det.unitWeight?.match(/^([\d.]+)\s*(.+)$/);
+    return {
+      idDetails: this.resolveDetailId(det),
+      cargoDescription: det.cargoDescription,
+      amount: 1,
+      weightValue: match ? Number.parseFloat(match[1]) : null,
+      weightUnit: match ? match[2].trim() : 'kg',
+      unitWeight: det.unitWeight,
+      deliveryAddress: det.deliveryAddress,
+      typePackaging: det.typePackaging,
+    };
+  }
+
+  private resolveDetailId(det: OrderDetail): number | undefined {
+    const raw = det as OrderDetail & Record<string, unknown>;
+    const candidates = [raw.idDetails, raw['id'], raw['id_details']];
+    for (const candidate of candidates) {
+      const parsed =
+        typeof candidate === 'number'
+          ? candidate
+          : Number.parseInt(String(candidate ?? ''), 10);
+      if (Number.isFinite(parsed) && parsed > 0) return parsed;
+    }
+    return undefined;
+  }
+
+  private getActiveDetails(details: OrderDetail[] | undefined): OrderDetail[] {
+    return (details ?? []).filter((detail) => !detail.deletedAt);
+  }
+
+  isEditItemValid(item: OrderDetailDraft | EditDetailDraft): boolean {
+    return (
+      item.cargoDescription.trim().length >= 3 &&
+      item.weightValue !== null &&
+      item.weightValue > 0 &&
+      item.weightUnit.trim().length > 0 &&
+      item.deliveryAddress.trim().length >= 5
+    );
+  }
+
+  allEditItemsValid(): boolean {
+    return this.editItems.length > 0 && this.editItems.every((item) => this.isEditItemValid(item));
+  }
+
+  syncEditItemWeight(item: EditDetailDraft): void {
+    if (item.weightValue !== null && item.weightValue > 0) {
+      item.unitWeight = `${item.weightValue} ${item.weightUnit}`;
+    }
+  }
+
+  openAddDetailForm(): void {
+    this.newEditItem = this.emptyDraft();
+    this.showAddDetailForm.set(true);
+  }
+
+  closeAddDetailForm(): void {
+    this.showAddDetailForm.set(false);
+    this.newEditItem = this.emptyDraft();
+  }
+
+  confirmAddEditItem(): void {
+    if (!this.isEditItemValid(this.newEditItem)) return;
+    const combinedWeight = `${this.newEditItem.weightValue} ${this.newEditItem.weightUnit}`;
+    this.editItems = [
+      ...this.editItems,
+      {
+        cargoDescription: this.newEditItem.cargoDescription.trim(),
+        amount: 1,
+        weightValue: this.newEditItem.weightValue,
+        weightUnit: this.newEditItem.weightUnit,
+        unitWeight: combinedWeight,
+        deliveryAddress: this.newEditItem.deliveryAddress.trim(),
+        typePackaging: this.newEditItem.typePackaging,
+      },
+    ];
+    this.closeAddDetailForm();
+  }
+
+  removeEditItem(index: number): void {
+    if (this.editItems.length <= 1) return;
+    this.editItems = this.editItems.filter((_, i) => i !== index);
+  }
+
+  private prepareEditItemsForSave(): EditDetailDraft[] {
+    return this.editItems.map((item) => {
+      this.syncEditItemWeight(item);
+      return {
+        ...item,
+        cargoDescription: item.cargoDescription.trim(),
+        deliveryAddress: item.deliveryAddress.trim(),
+      };
+    });
+  }
+
+  private buildDetailPayload(d: EditDetailDraft): {
+    cargoDescription: string;
+    amount: number;
+    unitWeight: string;
+    deliveryAddress: string;
+    typePackaging: string;
+  } {
+    return {
+      cargoDescription: d.cargoDescription,
+      amount: 1,
+      unitWeight: d.unitWeight,
+      deliveryAddress: d.deliveryAddress,
+      typePackaging: d.typePackaging,
+    };
+  }
+
+  saveEditedOrder(): void {
+    const order = this.editingOrder();
+    if (!order || !this.allEditItemsValid()) return;
+
+    const details = this.prepareEditItemsForSave();
+    this.savingEdit.set(true);
+
+    this.clientService.getOrderById(order.idOrder).subscribe({
+      next: (freshOrder) => {
+        const blockedReason = this.getEditBlockedReason(freshOrder);
+        if (blockedReason) {
+          this.savingEdit.set(false);
+          this.ui.showToast(blockedReason, 'error');
+          this.closeEditModal();
+          this.loadOrders();
+          return;
+        }
+
+        const currentIds = new Set(
+          details
+            .map((d) => d.idDetails)
+            .filter((id): id is number => id !== undefined),
+        );
+        const removedIds = this.originalEditDetailIds.filter((id) => !currentIds.has(id));
+
+        const deleteRequests = removedIds.map((id) => this.clientService.deleteOrderDetail(id));
+        const updateRequests = details
+          .filter((d) => d.idDetails !== undefined)
+          .map((d) =>
+            this.clientService.updateOrderDetail(d.idDetails!, this.buildDetailPayload(d)),
+          );
+        const createRequests = details
+          .filter((d) => d.idDetails === undefined)
+          .map((d) =>
+            this.clientService.createOrderDetail({
+              idOrder: order.idOrder,
+              ...this.buildDetailPayload(d),
+            }),
+          );
+
+        const allRequests = [...deleteRequests, ...updateRequests, ...createRequests];
+        if (allRequests.length === 0) {
+          this.savingEdit.set(false);
+          this.closeEditModal();
+          return;
+        }
+
+        forkJoin(allRequests).subscribe({
+          next: () => {
+            this.savingEdit.set(false);
+            this.closeEditModal();
+            this.ui.showToast(`Orden #${order.idOrder} actualizada correctamente`, 'success');
+            this.loadOrders();
+          },
+          error: (err) => {
+            this.savingEdit.set(false);
+            this.ui.mostrarError(err);
+          },
+        });
+      },
+      error: () => {
+        this.savingEdit.set(false);
+        this.ui.showToast('No se pudo validar la orden antes de guardar', 'error');
+      },
+    });
   }
 
   /* ── Execute Order + Details ── */

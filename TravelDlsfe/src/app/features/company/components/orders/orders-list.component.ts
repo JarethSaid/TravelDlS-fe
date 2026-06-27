@@ -148,7 +148,11 @@ interface Order {
                         @if (isDriverLocked(o)) {
                           <span class="order-muted-text">Asignación bloqueada</span>
                         } @else {
-                          <div class="order-driver-picker">
+                          <div class="order-driver-card">
+                            <h4 class="order-driver-card__title">
+                              {{ o.editingDriver ? 'Nuevo conductor' : 'Asignar conductor' }}
+                            </h4>
+
                             <div class="order-driver-select-wrap">
                               <i class="fa-solid fa-user-tie order-driver-select-icon"></i>
                               <select
@@ -156,8 +160,10 @@ interface Order {
                                 [(ngModel)]="o.newDriverId"
                                 autocomplete="off"
                               >
-                                <option [ngValue]="undefined" disabled selected>
-                                  {{ o.editingDriver ? 'Seleccione nuevo conductor' : 'Seleccione Conductor' }}
+                                <option [ngValue]="undefined" disabled>
+                                  {{
+                                    o.editingDriver ? 'Seleccione nuevo conductor' : 'Seleccione conductor'
+                                  }}
                                 </option>
                                 @for (d of drivers(); track d.idDriver) {
                                   <option [ngValue]="d.idDriver">
@@ -166,23 +172,27 @@ interface Order {
                                 }
                               </select>
                             </div>
-                            <button
-                              class="order-driver-action order-driver-action--primary"
-                              type="button"
-                              [disabled]="!o.newDriverId"
-                              (click)="confirmDriverEdit(o)"
-                            >
-                              <i class="fa-solid fa-check"></i> {{ o.editingDriver ? 'Cambiar' : 'Asignar' }}
-                            </button>
-                            @if (o.editingDriver) {
+
+                            <div class="order-driver-card__actions">
                               <button
-                                class="order-driver-action order-driver-action--secondary"
+                                class="order-driver-action order-driver-action--primary"
                                 type="button"
-                                (click)="cancelEditDriver(o)"
+                                [disabled]="!o.newDriverId"
+                                (click)="confirmDriverEdit(o)"
                               >
-                                <i class="fa-solid fa-xmark"></i> Cancelar
+                                <i class="fa-solid fa-check"></i>
+                                {{ o.editingDriver ? 'Cambiar' : 'Asignar' }}
                               </button>
-                            }
+                              @if (o.editingDriver) {
+                                <button
+                                  class="order-driver-action order-driver-action--secondary"
+                                  type="button"
+                                  (click)="cancelEditDriver(o)"
+                                >
+                                  <i class="fa-solid fa-xmark"></i> Cancelar
+                                </button>
+                              }
+                            </div>
                           </div>
                         }
                       } @else {
@@ -646,11 +656,43 @@ interface Order {
       cursor: not-allowed;
     }
 
-    .order-driver-assigned,
-    .order-driver-picker {
+    .order-driver-assigned {
       display: flex;
       align-items: center;
       gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .order-driver-card {
+      background: #ffffff;
+      border: 1.5px solid #dbeafe;
+      border-radius: 14px;
+      padding: 14px 16px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+      min-width: 250px;
+      max-width: 290px;
+      box-shadow: 0 2px 8px rgba(61, 57, 175, 0.06);
+    }
+
+    .order-driver-card__title {
+      margin: 0;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #3d39af;
+      line-height: 1.2;
+    }
+
+    .order-driver-card__actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
       flex-wrap: wrap;
     }
 
@@ -685,41 +727,39 @@ interface Order {
       position: relative;
       display: flex;
       align-items: center;
-      min-width: 220px;
-      max-width: 260px;
-      flex: 1 1 220px;
+      width: 100%;
     }
 
     .order-driver-select-icon {
       position: absolute;
       left: 14px;
-      color: #64748b;
-      font-size: 14px;
+      color: #3d39af;
+      font-size: 15px;
       pointer-events: none;
       z-index: 1;
     }
 
     .order-driver-select {
       width: 100%;
-      min-height: 38px;
+      min-height: 44px;
       border-radius: 12px;
       border: 1.5px solid #a5b4fc;
-      padding: 9px 38px 9px 38px;
+      padding: 10px 40px 10px 42px;
       font-family: inherit;
-      font-size: 13px;
+      font-size: 14px;
       line-height: 1.2;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
       box-sizing: border-box;
-      background-color: #f8fafc;
+      background-color: #ffffff;
       color: #1e293b;
       appearance: none;
       -webkit-appearance: none;
-      background-image: url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 20 20%22%3E%3Cpath stroke=%22%236b7280%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-width=%221.5%22 d=%22M6 8l4 4 4-4%22/%3E%3C/svg%3E');
-      background-position: right 12px center;
+      background-image: url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 20 20%22%3E%3Cpath stroke=%22%2364748b%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-width=%221.5%22 d=%22M6 8l4 4 4-4%22/%3E%3C/svg%3E');
+      background-position: right 14px center;
       background-repeat: no-repeat;
       background-size: 18px;
-      transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+      transition: border-color 0.2s, box-shadow 0.2s;
       white-space: nowrap;
       text-overflow: ellipsis;
     }
@@ -732,20 +772,21 @@ interface Order {
     }
 
     .order-driver-action {
-      min-height: 38px;
+      min-height: 40px;
       border-radius: 12px;
-      padding: 9px 16px;
+      padding: 10px 18px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
+      gap: 8px;
       font-family: inherit;
       font-size: 13px;
       line-height: 1;
       font-weight: 700;
       cursor: pointer;
       flex: 0 0 auto;
-      transition: background-color 0.2s, border-color 0.2s, opacity 0.2s;
+      transition: background-color 0.2s, border-color 0.2s, opacity 0.2s, box-shadow 0.2s,
+        transform 0.2s;
       white-space: nowrap;
     }
 
@@ -753,6 +794,12 @@ interface Order {
       background: #3d39af;
       color: white;
       border: 1.5px solid #3d39af;
+      box-shadow: 0 4px 10px rgba(61, 57, 175, 0.22);
+    }
+
+    .order-driver-action--primary:hover:not(:disabled) {
+      background: #342f9a;
+      transform: translateY(-1px);
     }
 
     .order-driver-action--secondary {
@@ -1201,7 +1248,7 @@ export class OrdersListComponent implements OnInit, OnDestroy {
   }
 
   isPriceLocked(order: Order): boolean {
-    return ['aceptado', 'en_transito', 'entregado'].includes(order.status);
+    return ['aceptado', 'en_transito', 'entregado', 'cancelado', 'anulado'].includes(order.status);
   }
 
   isDriverLocked(order: Order): boolean {

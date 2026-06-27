@@ -94,6 +94,25 @@ export class ClientService {
     return this.http.post<OrderDetail>(`${this.base}/api/order-details`, body);
   }
 
+  /** Actualiza un detalle de carga existente */
+  updateOrderDetail(
+    idDetails: number,
+    body: {
+      cargoDescription?: string;
+      amount?: number;
+      unitWeight?: string;
+      deliveryAddress?: string;
+      typePackaging?: string;
+    },
+  ): Observable<OrderDetail> {
+    return this.http.put<OrderDetail>(`${this.base}/api/order-details/${idDetails}`, body);
+  }
+
+  /** Elimina un detalle de carga */
+  deleteOrderDetail(idDetails: number): Observable<void> {
+    return this.http.delete<void>(`${this.base}/api/order-details/${idDetails}`);
+  }
+
   respondPrice(idOrder: number, body: { accepted: boolean }): Observable<ClientOrder> {
     return this.http.patch<ClientOrder>(`${this.base}/api/orders/${idOrder}/respond-price`, body);
   }
