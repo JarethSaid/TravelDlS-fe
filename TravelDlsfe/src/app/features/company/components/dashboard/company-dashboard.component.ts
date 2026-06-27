@@ -512,10 +512,11 @@ export class CompanyDashboardComponent implements OnInit {
         };
 
         driversList.forEach((d: any) => {
-          if (d.status === 'available') counts.available++;
-          else if (d.status === 'ontrip') counts.ontrip++;
-          else if (d.status === 'offline') counts.offline++;
-          else if (d.status === 'inactive') counts.inactive++;
+          const status = String(d.status || '').toLowerCase();
+          if (status === 'available') counts.available++;
+          else if (status === 'ontrip') counts.ontrip++;
+          else if (status === 'offline') counts.offline++;
+          else counts.inactive++;
         });
 
         this.driverCounts.set(counts);

@@ -1,10 +1,13 @@
 import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { AuthService } from '../../../../core/services/auth.service';
-import { OrderService } from '../../../company/services/order.service';
 import { HttpParams } from '@angular/common/http';
-import { interval, Subscription, switchMap, startWith } from 'rxjs';
+import { catchError, forkJoin, interval, of, startWith, Subscription, switchMap } from 'rxjs';
+import { AuthService } from '../../../../core/services/auth.service';
+import { getHttpErrorMessage } from '../../../../core/http/http-error.util';
 import { resolveOrderDeliveryAddress } from '../../../../shared/utils/order-address.util';
+import { InteractionService } from '../../../../shared/service/interaction.service';
+import { OrderService } from '../../../company/services/order.service';
+import { AssignedTruck, DriverProfile, DriverService } from '../../services/driver.service';
 
 @Component({
   selector: 'app-driver-trips',
@@ -28,13 +31,13 @@ import { resolveOrderDeliveryAddress } from '../../../../shared/utils/order-addr
       @if (loading() && trips().length === 0) {
         <div class="empty-card">
           <div class="empty-icon"><i class="fa-solid fa-spinner fa-spin"></i></div>
-          <h3>Cargando viajes…</h3>
+          <h3>Cargando viajes...</h3>
         </div>
       } @else if (filteredTrips().length === 0) {
         <div class="empty-card">
           <div class="empty-icon"><i class="fa-solid fa-route"></i></div>
           <h3>No hay viajes registrados</h3>
-          <p>Cuando te asignen viajes, aparecerán aquí para que puedas darles seguimiento.</p>
+          <p>Cuando te asignen viajes, apareceran aqui para que puedas darles seguimiento.</p>
         </div>
       } @else {
         <div class="table-card">
@@ -45,7 +48,7 @@ import { resolveOrderDeliveryAddress } from '../../../../shared/utils/order-addr
                   <th># Viaje</th>
                   <th>Cliente</th>
                   <th>Carga</th>
-                  <th>Dirección</th>
+                  <th>Direccion</th>
                   <th>Estado</th>
                   <th>Acciones</th>
                 </tr>
@@ -58,7 +61,7 @@ import { resolveOrderDeliveryAddress } from '../../../../shared/utils/order-addr
                       <div class="trip-client">{{ trip.client?.companyName || trip.client?.user?.name || 'Cliente #' + trip.idClient }}</div>
                     </td>
                     <td>
-                      <div class="trip-cargo">{{ trip.details?.[0]?.cargoDescription || 'Sin descripción' }}</div>
+                      <div class="trip-cargo">{{ trip.details?.[0]?.cargoDescription || 'Sin descripcion' }}</div>
                     </td>
                     <td>
                       <div class="trip-address" [title]="deliveryAddress(trip)">
@@ -73,9 +76,10 @@ import { resolveOrderDeliveryAddress } from '../../../../shared/utils/order-addr
                     </td>
                     <td>
                       @if (trip.status === 'aceptado') {
-                        @if (hasActiveTrip()) {
-                          <span style="color: #94a3b8; font-size: 13px; font-weight: 500; font-style: italic;">
-                            <i class="fa-solid fa-lock" style="margin-right: 4px;"></i> Otro viaje en curso
+                        @if (getStartTripBlockReason(trip); as blockReason) {
+                          <span class="action-blocked-label">
+                            <i class="fa-solid fa-lock"></i>
+                            {{ blockReason }}
                           </span>
                         } @else {
                           <button
@@ -272,6 +276,17 @@ import { resolveOrderDeliveryAddress } from '../../../../shared/utils/order-addr
     .status-entregado { background: #dcfce7; color: #166534; }
     .status-cancelado { background: #fee2e2; color: #b91c1c; }
     .status-anulado { background: #fee2e2; color: #b91c1c; }
+    .status-denegado { background: #fee2e2; color: #b91c1c; }
+
+    .action-blocked-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: #94a3b8;
+      font-size: 13px;
+      font-weight: 500;
+      font-style: italic;
+    }
 
     .btn-start-trip {
       display: inline-flex;
@@ -344,11 +359,15 @@ import { resolveOrderDeliveryAddress } from '../../../../shared/utils/order-addr
 export class DriverTripsComponent implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly orderService = inject(OrderService);
+  private readonly driverService = inject(DriverService);
+  private readonly ui = inject(InteractionService);
   readonly deliveryAddress = resolveOrderDeliveryAddress;
 
   activeFilter = signal('all');
   trips = signal<any[]>([]);
   filteredTrips = signal<any[]>([]);
+  driverProfile = signal<DriverProfile | null>(null);
+  assignedTruck = signal<AssignedTruck | null>(null);
   hasActiveTrip = computed(() => this.trips().some((t) => t.status === 'en_transito'));
   loading = signal(true);
   actionLoading = signal<number | null>(null);
@@ -394,24 +413,36 @@ export class DriverTripsComponent implements OnInit, OnDestroy {
       .pipe(
         startWith(0),
         switchMap(() => {
-          const p = new HttpParams().set('idDriver', user.idDriver!).set('perPage', 50);
-          return this.orderService.getOrders(p);
+          const params = new HttpParams().set('idDriver', user.idDriver!).set('perPage', 50);
+          return forkJoin({
+            orders: this.orderService.getOrders(params),
+            profile: this.driverService.getProfile(user.idDriver!).pipe(catchError(() => of(null))),
+            truck: this.driverService.getAssignedTruck().pipe(
+              catchError((err) => (err?.status === 404 ? of(null) : of(null))),
+            ),
+          });
         }),
       )
       .subscribe({
-        next: (res) => {
-          this.trips.set(res.data || []);
+        next: ({ orders, profile, truck }) => {
+          const allTrips = orders?.data || [];
+          this.trips.set(allTrips);
+          this.driverProfile.set(profile);
+          this.assignedTruck.set(truck);
           this.applyFilter();
           this.loading.set(false);
 
-          if (this.activeTrackingOrderId() === null) {
-            const activeTrip = (res.data || []).find((t: any) => t.status === 'en_transito');
-            if (activeTrip) {
-              this.startGeolocation(activeTrip.idOrder);
-            }
+          const activeTrip = allTrips.find((t: any) => t.status === 'en_transito');
+          if (activeTrip && this.activeTrackingOrderId() !== activeTrip.idOrder) {
+            this.startGeolocation(activeTrip.idOrder);
+          } else if (!activeTrip && this.activeTrackingOrderId() !== null) {
+            this.stopGeolocation();
           }
         },
-        error: () => this.loading.set(false),
+        error: (err) => {
+          this.loading.set(false);
+          this.ui.showToast(getHttpErrorMessage(err), 'error');
+        },
       });
   }
 
@@ -438,8 +469,32 @@ export class DriverTripsComponent implements OnInit, OnDestroy {
     }
   }
 
+  getStartTripBlockReason(trip: any): string | null {
+    if (trip.status !== 'aceptado') return null;
+    if (this.hasActiveTrip()) return 'Otro viaje en curso';
+
+    const driverStatus = this.normalizeDriverStatus(this.driverProfile()?.status);
+    if (driverStatus === 'offline') return 'Driver desconectado';
+    if (driverStatus === 'inactive') return 'Driver inactivo';
+    if (driverStatus && driverStatus !== 'available') return 'Driver no disponible';
+
+    const truck = this.assignedTruck();
+    if (!truck) return 'Sin camion asignado';
+
+    const truckStatus = this.normalizeTruckStatus(truck.status);
+    if (truckStatus === 'maintenance') return 'Camion en mantenimiento';
+    if (truckStatus !== 'active') return 'Camion inactivo';
+
+    return null;
+  }
+
   startTrip(trip: any): void {
-    if (trip.status !== 'aceptado') return;
+    const blockReason = this.getStartTripBlockReason(trip);
+    if (trip.status !== 'aceptado' || blockReason) {
+      if (blockReason) this.ui.showToast(blockReason, 'warning');
+      return;
+    }
+
     this.actionLoading.set(trip.idOrder);
     this.orderService.updateOrderStatus(trip.idOrder, 'en_transito').subscribe({
       next: () => {
@@ -449,7 +504,10 @@ export class DriverTripsComponent implements OnInit, OnDestroy {
         this.actionLoading.set(null);
         this.startGeolocation(trip.idOrder);
       },
-      error: () => this.actionLoading.set(null),
+      error: (err) => {
+        this.actionLoading.set(null);
+        this.ui.showToast(getHttpErrorMessage(err), 'error');
+      },
     });
   }
 
@@ -463,7 +521,10 @@ export class DriverTripsComponent implements OnInit, OnDestroy {
         this.actionLoading.set(null);
         this.stopGeolocation();
       },
-      error: () => this.actionLoading.set(null),
+      error: (err) => {
+        this.actionLoading.set(null);
+        this.ui.showToast(getHttpErrorMessage(err), 'error');
+      },
     });
   }
 
@@ -484,7 +545,7 @@ export class DriverTripsComponent implements OnInit, OnDestroy {
         const accuracy = position.coords.accuracy;
 
         if (!Number.isFinite(newLat) || !Number.isFinite(newLng)) {
-          this.gpsStatus.set('GPS inválido');
+          this.gpsStatus.set('GPS invalido');
           return;
         }
 
@@ -517,7 +578,7 @@ export class DriverTripsComponent implements OnInit, OnDestroy {
       },
       (error) => {
         const denied = error.code === error.PERMISSION_DENIED;
-        this.gpsStatus.set(denied ? 'GPS sin permiso' : 'GPS sin señal');
+        this.gpsStatus.set(denied ? 'GPS sin permiso' : 'GPS sin senal');
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
     );
@@ -542,17 +603,31 @@ export class DriverTripsComponent implements OnInit, OnDestroy {
     this.gpsStatus.set('GPS activo');
   }
 
+  private normalizeDriverStatus(status?: string | null): string {
+    return String(status || '').trim().toLowerCase();
+  }
+
+  private normalizeTruckStatus(status?: string | null): 'active' | 'maintenance' | 'inactive' | '' {
+    const normalized = String(status || '').trim().toLowerCase();
+    if (normalized === 'active' || normalized === 'activo') return 'active';
+    if (normalized === 'maintenance' || normalized === 'mantenimiento') return 'maintenance';
+    if (normalized === 'inactive' || normalized === 'inactivo') return 'inactive';
+    return '';
+  }
+
   statusLabel(status: string): string {
     const map: Record<string, string> = {
       pendiente: 'Pendiente',
       confirmado: 'Confirmado',
-      esperando_aprobacion: 'Esperando Aprobación',
+      esperando_aprobacion: 'Esperando Aprobacion',
       aceptado: 'Aceptado',
-      en_transito: 'En tránsito',
+      en_transito: 'En transito',
       entregado: 'Entregado',
       cancelado: 'Cancelado',
       anulado: 'Anulada',
+      denegado: 'Denegado',
     };
     return map[status] ?? status;
   }
 }
+

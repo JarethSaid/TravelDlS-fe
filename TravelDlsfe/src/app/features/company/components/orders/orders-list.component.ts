@@ -57,7 +57,8 @@ interface Order {
             <option value="aceptado">Aceptado</option>
             <option value="en_transito">En tránsito</option>
             <option value="entregado">Entregado</option>
-            <option value="cancelado">Cancelado</option>
+            <option value="anulado">Anuladas</option>
+            <option value="denegado">Denegadas</option>
           </select>
           <div class="per-page-control">
             <label class="per-page-label">Por página:</label>
@@ -165,10 +166,14 @@ interface Order {
                                     o.editingDriver ? 'Seleccione nuevo conductor' : 'Seleccione conductor'
                                   }}
                                 </option>
-                                @for (d of drivers(); track d.idDriver) {
-                                  <option [ngValue]="d.idDriver">
-                                    {{ cleanDriverName(d.user?.name || d.name) }}
-                                  </option>
+                                @if (drivers().length === 0) {
+                                  <option [ngValue]="undefined" disabled>No hay conductores disponibles</option>
+                                } @else {
+                                  @for (d of drivers(); track d.idDriver) {
+                                    <option [ngValue]="d.idDriver">
+                                      {{ cleanDriverName(d.user?.name || d.name) }}
+                                    </option>
+                                  }
                                 }
                               </select>
                             </div>
@@ -927,7 +932,7 @@ export class OrdersListComponent implements OnInit, OnDestroy {
   }
 
   loadDrivers(): void {
-    let p = new HttpParams().set('perPage', 100).set('hasTruck', 'true');
+    let p = new HttpParams().set('perPage', 100).set('availableForOrders', 'true');
     if (this.companyId) p = p.set('idCompany', this.companyId);
     this.driverService.getDrivers(p).subscribe({
       next: (res) => this.drivers.set(res.data || []),
@@ -1287,3 +1292,4 @@ export class OrdersListComponent implements OnInit, OnDestroy {
     return Math.max(0, detail.quantity || 1);
   }
 }
+

@@ -26,6 +26,13 @@ export const driverRoutes: Routes = [
           ),
       },
       {
+        path: 'truck',
+        loadComponent: () =>
+          import('../components/truck/driver-truck.component').then(
+            (m) => m.DriverTruckComponent,
+          ),
+      },
+      {
         path: 'profile',
         loadComponent: () =>
           import('../components/profile/driver-profile.component').then(
