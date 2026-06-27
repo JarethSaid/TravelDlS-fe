@@ -88,6 +88,7 @@ export interface OrderDetail {
   typePackaging: string;
   createdAt: string;
   updatedAt: string;
+  deletedAt?: string | null;
   driver?: { idDriver: number; name: string } | null;
 }
 
