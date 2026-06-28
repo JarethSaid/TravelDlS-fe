@@ -689,8 +689,8 @@ type SimulationStatus = 'idle' | 'running' | 'paused' | 'finished' | 'error';
                         }
                       </div>
                       <div class="detail-item-right">
-                        @if (det.amount && det.amount > 1) {
-                          <p class="detail-item-price">C$ {{ det.amount | number: '1.2-2' }}</p>
+                        @if (getOrderTotal(selectedOrderDetail()!) > 0) {
+                          <p class="detail-item-price">C$ {{ getOrderTotal(selectedOrderDetail()!) | number: '1.2-2' }}</p>
                         } @else {
                           <p class="detail-item-price detail-item-price--pending">Sin precio</p>
                         }

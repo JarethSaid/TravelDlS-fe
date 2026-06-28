@@ -437,7 +437,7 @@ interface Order {
 
                       <div style="text-align: right;">
                         <p style="margin: 0; font-size: 15px; font-weight: 700; color: #3d39af;">
-                          C$ {{ det.amount ?? det.price ?? 0 | number: '1.2-2' : 'en-US' }}
+                          C$ {{ selectedOrder()?.selectedAmount || det.amount || det.price || 0 | number: '1.2-2' : 'en-US' }}
                         </p>
                       </div>
                     </div>
