@@ -671,7 +671,7 @@ type SimulationStatus = 'idle' | 'running' | 'paused' | 'finished' | 'error';
                         </p>
                         <div class="detail-item-tags">
                           <span class="detail-tag">
-                            <i class="fa-solid fa-cubes"></i> Cant: {{ det.amount || 1 }}
+                            <i class="fa-solid fa-cubes"></i> Cant: {{ $any(det).quantity ?? 1 }}
                           </span>
                           <span class="detail-tag">
                             <i class="fa-solid fa-weight-hanging"></i> Peso:
@@ -689,7 +689,7 @@ type SimulationStatus = 'idle' | 'running' | 'paused' | 'finished' | 'error';
                         }
                       </div>
                       <div class="detail-item-right">
-                        @if (det.amount && det.amount > 0) {
+                        @if (det.amount && det.amount > 1) {
                           <p class="detail-item-price">C$ {{ det.amount | number: '1.2-2' }}</p>
                         } @else {
                           <p class="detail-item-price detail-item-price--pending">Sin precio</p>
@@ -1463,7 +1463,7 @@ export class ClientOrdersComponent implements OnInit, OnDestroy {
 
   getOrderTotal(order: ClientOrder): number {
     if (!order.details || order.details.length === 0) return 0;
-    return order.details.reduce((sum, d) => sum + (d.amount ?? 0), 0);
+    return order.details.reduce((sum, d) => sum + ((d.amount ?? 0) > 1 ? d.amount! : 0), 0);
   }
 
   private loadCompanies(search?: string): void {
@@ -1505,7 +1505,7 @@ export class ClientOrdersComponent implements OnInit, OnDestroy {
   private emptyDraft(): OrderDetailDraft {
     return {
       cargoDescription: '',
-      amount: 1,
+      amount: 0,
       weightValue: null,
       weightUnit: 'kg',
       unitWeight: '',
@@ -1531,7 +1531,7 @@ export class ClientOrdersComponent implements OnInit, OnDestroy {
       ...list,
       {
         cargoDescription: this.draftDetail.cargoDescription.trim(),
-        amount: 1,
+        amount: 0,
         weightValue: this.draftDetail.weightValue,
         weightUnit: this.draftDetail.weightUnit,
         unitWeight: combinedWeight,
@@ -1641,7 +1641,7 @@ export class ClientOrdersComponent implements OnInit, OnDestroy {
     return {
       idDetails: this.resolveDetailId(det),
       cargoDescription: det.cargoDescription,
-      amount: 1,
+      amount: det.amount ?? 0,
       weightValue: match ? Number.parseFloat(match[1]) : null,
       weightUnit: match ? match[2].trim() : 'kg',
       unitWeight: det.unitWeight,
@@ -1704,7 +1704,7 @@ export class ClientOrdersComponent implements OnInit, OnDestroy {
       ...this.editItems,
       {
         cargoDescription: this.newEditItem.cargoDescription.trim(),
-        amount: 1,
+        amount: 0,
         weightValue: this.newEditItem.weightValue,
         weightUnit: this.newEditItem.weightUnit,
         unitWeight: combinedWeight,
@@ -1740,7 +1740,7 @@ export class ClientOrdersComponent implements OnInit, OnDestroy {
   } {
     return {
       cargoDescription: d.cargoDescription,
-      amount: 1,
+      amount: d.amount ?? 0,
       unitWeight: d.unitWeight,
       deliveryAddress: d.deliveryAddress,
       typePackaging: d.typePackaging,
