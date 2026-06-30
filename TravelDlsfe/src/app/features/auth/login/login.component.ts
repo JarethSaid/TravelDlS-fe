@@ -60,6 +60,63 @@ import { getHttpErrorMessage } from '../../../core/http/http-error.util';
           ¿No tienes cuenta?
           <a routerLink="/register">Crear cuenta</a>
         </p>
+
+      </div>
+      <div class="help-floating" [class.help-floating--open]="showHelp">
+        @if (showHelp) {
+          <section id="login-help-panel" class="help-panel" aria-labelledby="login-help-title">
+            <div class="help-panel__header">
+              <i class="fa-solid fa-circle-question" aria-hidden="true"></i>
+              <h2 id="login-help-title">Ayuda para crear tu cuenta</h2>
+            </div>
+
+            <div class="help-panel__section">
+              <h3>Cuenta de cliente</h3>
+              <p>
+                Si deseas solicitar envíos o revisar tus órdenes, puedes crear tu cuenta desde
+                <a routerLink="/register">Crear cuenta</a>. Ese registro está pensado para clientes
+                que necesitan cotizar y dar seguimiento a servicios de carga pesada.
+              </p>
+            </div>
+
+            <div class="help-panel__section">
+              <h3>Cuenta de empresa</h3>
+              <p>
+                Las cuentas de empresa no se crean desde el registro público. Para solicitar una,
+                escribe a los administradores e incluye el nombre de la empresa, RUC, nombre de
+                contacto y teléfono para que puedan validar la información.
+              </p>
+            </div>
+
+            <div class="help-panel__section">
+              <h3>Cuenta de conductor</h3>
+              <p>
+                Los conductores no deben registrarse por su cuenta. La empresa a la que pertenecen,
+                o el administrador general, crea o vincula su acceso para que puedan usar el panel
+                de conductor correctamente.
+              </p>
+            </div>
+
+            <div class="help-panel__contact">
+              <span>Contactos para empresas</span>
+              <a href="mailto:Jarethsaidbonillac@gmail.com">Jarethsaidbonillac@gmail.com</a>
+              <a href="mailto:elsacerdaugarte@gmail.com">elsacerdaugarte@gmail.com</a>
+              <a href="mailto:Ashleycastro@gmail.com">Ashleycastro@gmail.com</a>
+            </div>
+          </section>
+        }
+
+        <button
+          class="help-button"
+          type="button"
+          (click)="toggleHelp()"
+          [attr.aria-expanded]="showHelp"
+          aria-controls="login-help-panel"
+          [attr.aria-label]="showHelp ? 'Cerrar ayuda para crear cuenta' : 'Abrir ayuda para crear cuenta'"
+          title="Ayuda para crear cuenta"
+        >
+          <i [class]="showHelp ? 'fa-solid fa-xmark' : 'fa-solid fa-circle-question'" aria-hidden="true"></i>
+        </button>
       </div>
     </div>
   `,
@@ -75,6 +132,7 @@ import { getHttpErrorMessage } from '../../../core/http/http-error.util';
     .auth-card {
       width: 100%;
       max-width: 420px;
+      box-sizing: border-box;
     }
     .auth-brand {
       margin-bottom: 8px;
@@ -101,6 +159,133 @@ import { getHttpErrorMessage } from '../../../core/http/http-error.util';
       text-decoration: underline;
       margin-left: 4px;
     }
+    .help-floating {
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 12px;
+      pointer-events: none;
+    }
+    .help-panel,
+    .help-button {
+      pointer-events: auto;
+    }
+    .help-button {
+      width: 54px;
+      height: 54px;
+      border: none;
+      border-radius: 50%;
+      background: #3d39af;
+      color: white;
+      display: grid;
+      place-items: center;
+      font-size: 21px;
+      cursor: pointer;
+      box-shadow: 0 14px 32px rgba(61, 57, 175, 0.35);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+    .help-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 18px 38px rgba(61, 57, 175, 0.42);
+      background: #34309b;
+    }
+    .help-button:focus-visible {
+      outline: 3px solid rgba(61, 57, 175, 0.25);
+      outline-offset: 4px;
+    }
+    .help-panel {
+      width: 340px;
+      max-width: calc(100vw - 32px);
+      max-height: calc(100vh - 112px);
+      overflow-y: auto;
+      padding: 18px;
+      border: 1px solid #dbe4ff;
+      border-radius: 18px;
+      background: #ffffff;
+      color: #475569;
+      text-align: left;
+      box-sizing: border-box;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+    }
+    .help-panel__header {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: #3d39af;
+      margin-bottom: 14px;
+    }
+    .help-panel__header i {
+      font-size: 18px;
+      flex: 0 0 auto;
+    }
+    .help-panel h2,
+    .help-panel h3,
+    .help-panel p {
+      margin: 0;
+    }
+    .help-panel h2 {
+      font-size: 16px;
+      line-height: 1.3;
+      font-weight: 800;
+    }
+    .help-panel h3 {
+      color: #1e293b;
+      font-size: 13px;
+      line-height: 1.35;
+      font-weight: 800;
+      margin-bottom: 5px;
+    }
+    .help-panel p {
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .help-panel__section + .help-panel__section {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #e2e8f0;
+    }
+    .help-panel a {
+      color: #3d39af;
+      font-weight: 700;
+      overflow-wrap: anywhere;
+      text-decoration: underline;
+    }
+    .help-panel__contact {
+      margin-top: 14px;
+      padding: 12px;
+      border-radius: 14px;
+      background: #f8faff;
+      border: 1px solid #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    .help-panel__contact span {
+      color: #1e293b;
+      font-weight: 800;
+    }
+    @media (max-width: 480px) {
+      .auth-shell {
+        padding: 16px;
+      }
+      .auth-card {
+        padding: 28px 16px;
+      }
+      .help-floating {
+        right: 16px;
+        bottom: 16px;
+      }
+      .help-panel {
+        width: calc(100vw - 32px);
+        padding: 16px;
+      }
+    }
   `,
 })
 export class LoginComponent {
@@ -110,11 +295,16 @@ export class LoginComponent {
   private readonly ui = inject(InteractionService);
 
   submitting = false;
+  showHelp = false;
 
   readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(6)]],
   });
+
+  toggleHelp(): void {
+    this.showHelp = !this.showHelp;
+  }
 
   onSubmit(): void {
     if (this.form.invalid || this.submitting) {
